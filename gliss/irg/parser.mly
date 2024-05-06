@@ -242,6 +242,7 @@ let top_elsif _ =
 %token    	ENUM
 %token	  	ERROR
 %token		EXTEND
+%token<int>	EVENT
 %token    	FIX
 %token    	FLOAT
 %token		FOR
@@ -347,6 +348,8 @@ MachineSpec :
 |   RegisterSpec
 		{ sanity_check (fst $1) (*Sem.add_spec (fst $1) (snd $1)*) }
 |   PortSpec
+		{ sanity_check (fst $1) (*Sem.add_spec (fst $1) (snd $1)*) }
+|	EventSpec
 		{ sanity_check (fst $1) (*Sem.add_spec (fst $1) (snd $1)*) }
 |   ModeSpec
 		{ sanity_check (fst $1); Sem.add_spec (fst $1) (snd $1); }
@@ -519,6 +522,19 @@ PortSpecHeader : PORT LocatedID LPAREN PortPart RPAREN
 
 PortSpec:
     PortSpecHeader OptionalMemAttrDefList
+        { Sem.add_atts (fst $1) $2; Irg.attr_unstack $2; $1 }
+;
+
+EventSpecHeader : EVENT LocatedID   
+    {
+		Sem.add_spec (fst $2) (Sem.make_event $2 []);
+		Csim.prepare_other (fst $2) ;
+		$2
+	}
+;
+
+EventSpec:
+    EventSpecHeader OptionalMemAttrDefList
         { Sem.add_atts (fst $1) $2; Irg.attr_unstack $2; $1 }
 ;
 

@@ -395,6 +395,7 @@ type spec =
 	| MEM of string * int * type_expr				  * attr list
 	| REG of string * int * type_expr				  * attr list
 	| PORT of string * int *  type_expr				  * attr list
+	| EVENT of string 												* attr list
 	| VAR of string * int * type_expr				  * attr list
 	| AND_MODE of string * (string * typ) list * expr * attr list
 	| OR_MODE of string * string list				  * attr list
@@ -417,6 +418,7 @@ let name_of spec =
 	| MEM (name, _, _, _)
 	| REG (name, _, _, _)
 	| PORT (name, _, _, _)
+	| EVENT (name,_)
 	| VAR (name, _, _, _)
 	| AND_MODE (name, _, _, _)
 	| OR_MODE (name, _, _)
@@ -567,6 +569,8 @@ let add_symbol name sym =
 			REG(name, size, typ, change_alias_attr m_a_l (get_type_length typ))
 		| PORT(name, size, typ, m_a_l) ->
 			PORT(name, size, typ, change_alias_attr m_a_l (get_type_length typ))
+		| EVENT(name, m_a_l) ->
+			EVENT(name, m_a_l)
 		| _ ->
 			s
 	in
@@ -613,6 +617,7 @@ let attrs_of spec =
 	| MEM (_, _, _, atts)
 	| REG (_, _, _, atts)
 	| PORT(_,_,_, atts)
+	| EVENT(_, atts)
 	| VAR (_, _, _, atts)
 	| AND_MODE (_, _, _, atts)
 	| AND_OP (_, _, atts)		-> atts
@@ -907,6 +912,7 @@ let in_spec_context spec f =
 		| MEM (_, _, _, atts)
 		| REG (_, _, _, atts)
 		| PORT (_,_,_,atts)
+		| EVENT (_,atts)
 		| VAR (_, _, _, atts)
 		| OR_MODE (_, _, atts)
 		| OR_OP (_, _, atts)
@@ -1550,6 +1556,10 @@ let output_spec out spec =
 		print_string ")";
 		output_mem_attrs out attrs;
 		print_newline ()
+	| EVENT (name, attrs) ->
+		Printf.fprintf out "event %s " name;
+		output_mem_attrs out attrs;
+		print_newline ()
 	| VAR (name, size, typ, attrs) ->
 		Printf.fprintf out "var %s [%d, " name size;
 		output_type_expr out typ;
@@ -2042,6 +2052,10 @@ let is_port id =
     | PORT _ -> true
     | _ -> false
 
+let is_evt id = 
+		match get_symbol id with
+		| EVENT _ -> true
+		| _ -> false
 
 (* smart attribute access functions *)
 

@@ -1290,6 +1290,7 @@ let rec is_location id =
 	| MEM _
 	| REG _
 	| PORT _
+	| EVENT _
 	| VAR _ -> true
 	| PARAM (n, t)-> scan_param n t
 	| LET _
@@ -1730,6 +1731,7 @@ let add_atts name atts =
 	| TYPE (_, t, oatts)		-> replace (TYPE (name, t, atts @ oatts))
 	| MEM (_, s, t, oatts)		-> replace (MEM (name, s, t, atts @ oatts))
 	| PORT (_,s, t, oatts)		-> replace (PORT (name, s, t, atts @ oatts))
+	| EVENT (_,oatts) 				-> replace (EVENT(name,atts @ oatts))
 	| REG (_, s, t, oatts)		-> replace (REG (name, s, t, atts @ oatts))		
 	| VAR (_, s, t, oatts)		-> replace (VAR (name, s, t, atts @ oatts))
 	| AND_MODE (_, p, e, oatts)	-> replace (AND_MODE (name, p, e, atts @ oatts))
@@ -2446,6 +2448,15 @@ let make_reg (id, line) size typ atts =
 let make_port (id, line) size typ atts =
 	Irg.PORT (id, size, typ, set_line_info atts line)
     
+(** Make a event specification.
+    @param id    Specification name.
+    @param line    Line information.
+    @param atts    Attributes.
+    @return        Made specification. *)
+let make_event (id, line) atts =
+	Irg.EVENT (id, set_line_info atts line)
+			
+
 (** Make a variable specification.
 	@param id	Specification name.
 	@param line	Line information.

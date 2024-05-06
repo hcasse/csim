@@ -1,0 +1,48 @@
+
+let component = "TIM"
+let arch = "stm32"
+let author="H. Cassé"
+let license = "GPL"
+let copyright = "University of Toulouse 3"
+let date = "06/05/2023"
+
+type bit = card(1)
+type word = card(32)
+type half = card(16)
+
+let UIF = 0
+let CEN = 0
+
+reg last[1, word]
+	offset = 0x100
+	intern = 1		// Indique que ce registre n'est pas accessible
+					// par le programme.
+	init = 115		// Donne la valeur initiale
+
+reg running[1, bit]
+	offset = 0x104
+	intern = 1
+	init = 1
+
+reg CR1[1, word]
+	offset = 0x00
+	init = 0
+
+reg SR[1, word]
+	offset = 0x10
+	init = 0
+
+reg ARR[1, half]
+	offset = 0x2C
+	init = 0
+
+reg CNT[1, half]
+	offset = 0x24
+
+event Update
+	on_update = {
+		CR1<CEN..CEN> = 0;
+	}
+	on_trigger = {
+		CR1<CEN..CEN> = 1;
+	}

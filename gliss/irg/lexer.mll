@@ -44,6 +44,7 @@ let keyword id =
 		|MEM _->MEM !line
 		|MODE _->MODE !line
 		|PORT _->PORT !line
+		|EVENT _-> EVENT !line
 		|OP _-> OP !line
 		|REG _->REG !line
 		|VAR _->VAR !line
@@ -64,13 +65,14 @@ let keywords = [
 	("default",     DEFAULT);
 	("do",			DO);
 	("else",        ELSE);
-	("elsif",	ELSIF);
+	("elsif",		ELSIF);
 	("enddo",		ENDDO);
 	("endif",       ENDIF);
 	("enum",        ENUM);
 	("error",       ERROR);
 	("exception",   EXCEPTION 0);
 	("extend",		EXTEND);
+	("event",		EVENT 0);
 	("fix",        	FIX);
 	("float",       FLOAT);
 	("for",			FOR);
@@ -87,7 +89,7 @@ let keywords = [
 	("not",        	NOT);
 	("op",        	OP 0);
 	("reg",        	REG 0);
-	("port",	PORT 0);
+	("port",		PORT 0);
 	("var",        	VAR 0);
 	("resource",    RESOURCE 0);
 	("syntax",      SYNTAX);
