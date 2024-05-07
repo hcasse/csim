@@ -3,6 +3,7 @@ let arch = "stm32"
 let license = "GPL"
 let copyright = "University of Toulouse 3"
 let date = "03/04/2024"
+let io_comp = 1
 
 type bit = card(1)
 type word = card(32)

@@ -32,11 +32,16 @@ $(foreach ports)
 	$(end)
 $(end)
 
+
 /**
  * Instance definition.
  */
 typedef struct  $(comp)_inst_t {
-    csim_inst_t inst;
+	$(if io_comp)
+    csim_iocomp_t inst;
+	$(else)
+	csim_inst_t inst;
+	$(end)
     $(foreach registers)
 		$(if multiple)
 			$(type) $(name)[$(size)];
@@ -54,13 +59,26 @@ typedef struct  $(comp)_inst_t {
 }  $(comp)_inst_t;
 
 
-/* pre-definitiion of update functions */
+/* pre-definitiion of port update functions */
 $(foreach ports)
 	static void on_update_$(name)(csim_inst_t *inst);
 $(end)
 
+/* pre-definitiion of event update functions */
+$(foreach events)
+	static void on_update_$(name)(csim_inst_t *inst);
+$(end)
+
+/* pre-definitiion of event trigger functions */
+$(foreach events)
+	static void on_trigger_$(name)(csim_inst_t *inst);
+$(end)
+
 static void on_update_all(csim_inst_t *inst) {
 	$(foreach ports)
+		on_update_$(name)(inst);
+	$(end)	
+	$(foreach events)
 		on_update_$(name)(inst);
 	$(end)	
 }
@@ -244,7 +262,52 @@ $(on_update)
 
 $(end)
 
+$(foreach events)
+/*$(name) event functions */
 
+static void on_update_$(name)(csim_inst_t *inst) {
+	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+	$(on_update)
+}
+
+static void on_trigger_$(name)(csim_inst_t *inst) {
+	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+	$(on_trigger)
+}
+
+$(end)
+
+$(if io_comp)
+
+static int $(comp)_display(char *buf, csim_iocomp_inst_t *inst) {
+	char display[] = " ";
+	// By default shows nothing, can be modified by changing the display var.
+	return sprintf(buf,display);
+}
+
+static void $(comp)_on_key(char key, csim_iocomp_inst_t *inst) {
+}
+
+
+csim_iocomp_t  $(comp)_component = {
+	{
+    "$(comp)",
+    CSIM_IO,
+    0,					// version
+    regs,				// registers
+    $(register_count) ,	// register count
+    ports,				// ports
+    $(port_count),		// port count
+    sizeof($(comp)_inst_t),
+    $(comp)_construct,
+    $(comp)_destruct,
+    $(comp)_reset
+	},
+	$(comp)_display,
+	$(comp)_on_key
+};
+
+$(else)
 /**
  * $(comp) description structure.
  */
@@ -261,3 +324,4 @@ csim_component_t  $(comp)_component = {
     $(comp)_destruct,
     $(comp)_reset
 };
+$(end)

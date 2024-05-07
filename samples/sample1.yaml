@@ -1,14 +1,14 @@
 name: sample1
-components:
-  CORE:
+components
+  CORE
     type: arm
-  LED:
+  LED
     type: led
     base: A0000000
     x: 50
     y: 50
-  BUTTON:
+  BUTTON
     type: button
     base: B0000000
     key: b
-connect:
+connect

@@ -44,5 +44,5 @@ event Update
 		CR1<CEN..CEN> = 0;
 	}
 	on_trigger = {
-		CR1<CEN..CEN> = 1;
+		CR1<CEN..CEN> = now;
 	}

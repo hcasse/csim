@@ -1,1 +1,10 @@
+<<<<<<< HEAD
 {}
+=======
+{
+    "files.associations": {
+        "csim-rt.h": "c",
+        "csim.h": "c"
+    }
+}
+>>>>>>> 75aef28 (Ajout de let io_comp = 1 dans le template pour générer des composants d'entrée sortie)

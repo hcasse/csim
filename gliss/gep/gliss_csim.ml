@@ -227,7 +227,9 @@ let get_events info f dict =
 
 		let on_trigger out =
 			match get_attr "on_trigger" atts with 
-				| _ -> printf "//TODO" in
+			| None -> ()
+			| Some (ATTR_STAT (_,s)) -> gen_code info s out
+			| _ -> pre_error "on_update must be an attribute and define an instruction!" in
 
 				("name", text (asis name)) ::
 				("on_update", text on_update) ::
@@ -263,6 +265,11 @@ let make_top_dict comp info =
 		| None -> "NoArch"
 		| Some name -> name in
 
+	let io_comp = 
+		match get_int_let "io_comp" with 
+		| Some 1 -> true
+		| _ -> false in
+
 	[
 		("comp", out (fun _ -> comp));
 		("COMP", out (fun _ -> String.uppercase_ascii comp));
@@ -273,7 +280,8 @@ let make_top_dict comp info =
 		("ports", Templater.COLL (get_ports info pmap));
 		("events", Templater.COLL (get_events info));
 		("register_count", text register_count);
-		("registers", Templater.COLL (get_registers info))
+		("registers", Templater.COLL (get_registers info));
+		("io_comp", bool (fun _ -> io_comp))
 	]
 
 
