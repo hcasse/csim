@@ -216,7 +216,31 @@ let get_ports info pmap f dict =
 			| _ -> ())
 
 
-(** Build the top-level dictionary. *)
+let get_events info f dict = 
+	let make name atts dict = 
+
+		let on_update out = 
+			match get_attr "on_update" atts with
+			| None -> ()
+			| Some (ATTR_STAT (_,s)) -> gen_code info s out
+			| _ -> pre_error "on_update must be an attribute and define an instruction!" in
+
+		let on_trigger out =
+			match get_attr "on_trigger" atts with 
+				| _ -> printf "//TODO" in
+
+				("name", text (asis name)) ::
+				("on_update", text on_update) ::
+				("on_trigger", text on_trigger) ::
+				dict in
+
+				Irg.iter
+					(fun name spec ->
+						match spec with
+						| EVENT (name, atts) -> f (make name atts dict)
+						| _ -> ()) 
+
+			(** Build the top-level dictionary. *)
 let make_top_dict comp info =
 	let pmap = assign_ports () in
 
@@ -247,6 +271,7 @@ let make_top_dict comp info =
 		("date", out (fun _ -> App.format_date (Unix.time ())));
 		("port_count", text port_count);
 		("ports", Templater.COLL (get_ports info pmap));
+		("events", Templater.COLL (get_events info));
 		("register_count", text register_count);
 		("registers", Templater.COLL (get_registers info))
 	]

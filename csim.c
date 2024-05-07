@@ -270,7 +270,7 @@ csim_board_t *csim_new_board(const char *name, csim_memory_t *mem) {
 	board->iocomps = NULL;
 	board->clock = 0;
 	board->date = 0;
-	board->evts = 0;
+	board->evts = NULL;
 	board->level = CSIM_INFO;
 	board->mem = mem;
 	board->log = csim_log;
