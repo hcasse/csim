@@ -330,6 +330,7 @@ type const =
 
 type expr =
 	  NONE																(** null expression *)
+	| NOW
 	| COERCE of type_expr * expr										(** explicit coercition *)
 	| FORMAT of string * expr list										(** format expression *)
 	| CANON_EXPR of type_expr * string * expr list						(** canonical expression *)
@@ -390,6 +391,7 @@ type canon_type =
 (** Specification of an item *)
 type spec =
 	  UNDEF
+	| NOW
 	| LET of string * type_expr * const				  * attr list
 	| TYPE of string * type_expr					  * attr list
 	| MEM of string * int * type_expr				  * attr list
@@ -432,6 +434,7 @@ let name_of spec =
 	| ATTR(ATTR_STAT(name, _))
 	| ATTR(ATTR_LOC(name, _))
 	| ATTR(ATTR_LINE_INFO(name, _)) -> name
+	| NOW -> "NOW"
 	| ATTR(ATTR_USES)				-> "<ATTR_USES>"
 
 
@@ -464,7 +467,8 @@ module StringSet = Set.Make(StringOrder)
 let syms : spec StringHashtbl.t = StringHashtbl.create 211
 let _ =
 	StringHashtbl.add syms "__IADDR" (PARAM ("__IADDR", TYPE_EXPR (CARD(32))));
-	StringHashtbl.add syms "__ISIZE" (PARAM ("__ISIZE", TYPE_EXPR (CARD(32))))
+	StringHashtbl.add syms "__ISIZE" (PARAM ("__ISIZE", TYPE_EXPR (CARD(32))));
+	StringHashtbl.add syms "now" (NOW)
 
 (** Get the symbol matching the given name or UNDEF if not found.
 	@param n	Symbol to look for.
@@ -901,6 +905,7 @@ let in_spec_context spec f =
 	let (pars, atts) =
 		match spec with
 		| UNDEF
+		| NOW
 		| RES _
 		| EXN _
 		| PARAM _
@@ -1290,6 +1295,8 @@ let rec output_expr out e =
 		output_string out ">(";
 		output_expr out expr;
 		output_string out ")"
+	| NOW ->
+		output_string out "NOW"
 
 
 (** Print an expression.
@@ -1641,8 +1648,8 @@ let output_spec out spec =
 			Printf.fprintf out "\"%s\"\t: " name;
 			output_type_expr out type_res;
 			output_string out "\n"
-
-
+	| NOW ->
+		output_string out "NOW"
 	| UNDEF ->
 		output_string out "<UNDEF>"
 
@@ -1968,6 +1975,7 @@ type line =
 let rec line_from_expr expr =
 	match expr with
 	| NONE
+	| NOW
 	| REF _
 	| FIELDOF _
 	| CONST _

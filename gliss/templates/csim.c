@@ -32,6 +32,8 @@ $(foreach ports)
 	$(end)
 $(end)
 
+#define now inst->board->date
+
 
 /**
  * Instance definition.

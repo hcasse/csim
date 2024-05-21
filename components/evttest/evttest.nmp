@@ -41,8 +41,8 @@ reg CNT[1, half]
 
 event Update
 	on_update = {
-		CR1<CEN..CEN> = 0;
+		CR1 = 0;
 	}
 	on_trigger = {
-		CR1<CEN..CEN> = now;
+		CR1 = now;
 	}

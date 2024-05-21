@@ -2013,6 +2013,8 @@ let make_ref id =
 	match get_symbol id with
 	| UNDEF ->
 		error_undefined id
+	| NOW ->
+		REF (CARD 32, id)
 	| ATTR (ATTR_EXPR (_, e)) ->
 		REF (get_type_expr e, id)
 	| LET (_, t, _, _)

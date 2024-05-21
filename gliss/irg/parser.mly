@@ -452,8 +452,8 @@ TypeExpr:
 		{ Irg.BOOL }
 |	INT LPAREN LetExpr RPAREN
 		{ Irg.INT (Sem.to_int (Sem.eval_const $3)) }
-|	CARD error
-		{ syntax_error "syntax of int should be: int(SIZE)" }
+// |	CARD error
+// 		{ syntax_error "syntax of int should be: int(SIZE)" }
 |	CARD LPAREN LetExpr RPAREN
 		{ Irg.CARD (Sem.to_int (Sem.eval_const $3)) }
 |	CARD error
