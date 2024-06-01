@@ -188,6 +188,7 @@ struct csim_core_t {
 struct csim_core_inst_t {
 	csim_inst_t inst;
 	struct csim_core_inst_t *next;
+	void * (*interrupt)(int codeInterrupt); 
 };
 
 

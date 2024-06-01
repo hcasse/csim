@@ -2336,6 +2336,11 @@ let make_local id e =
 			LOCAL (uid, id, t, e)
 		end
 
+	(** Make a Interrupt specification.
+    @param code 	 Code of the interrupt.
+    @return        Made specification. *)
+let make_interrupt code =
+	Irg.INTERRUPT code
 
 (** Prepare a for-instruction, mainly, declare the local instruction.
 	@param v	Variable identifier.
@@ -2446,16 +2451,6 @@ let make_reg (id, line) size typ atts =
     @return        Made specification. *)
 let make_port (id, line) size typ atts =
 	Irg.PORT (id, size, typ, set_line_info atts line)
-
-
-(** Make a Interrupt specification.
-    @param id    Specification name.
-    @param line    Line information.
-    @param code 	 Code of the interrupt.
-    @param atts    Attributes.
-    @return        Made specification. *)
-let make_interrupt code =
-	Irg.INTERRUPT code
     
 (** Make a variable specification.
 	@param id	Specification name.
