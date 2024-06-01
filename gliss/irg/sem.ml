@@ -2229,7 +2229,8 @@ let rec check_stat_inst stat =
 	match stat with
 	| NOP
 	| EVAL _
-	| ERROR _ ->
+	| ERROR _
+	| INTERRUPT _ ->
 		stat
 	| LOCAL (un, on, t, i) ->
 		let i' = check_expr_inst i in
@@ -2445,6 +2446,16 @@ let make_reg (id, line) size typ atts =
     @return        Made specification. *)
 let make_port (id, line) size typ atts =
 	Irg.PORT (id, size, typ, set_line_info atts line)
+
+
+(** Make a Interrupt specification.
+    @param id    Specification name.
+    @param line    Line information.
+    @param code 	 Code of the interrupt.
+    @param atts    Attributes.
+    @return        Made specification. *)
+let make_interrupt code =
+	Irg.INTERRUPT code
     
 (** Make a variable specification.
 	@param id	Specification name.
@@ -2692,6 +2703,7 @@ let final_checks insts =
 		| SET _
 		| CANON_STAT _
 		| ERROR _
+		| INTERRUPT _
 		| LOCAL _ ->
 			()
 		| SEQ (s1, s2)

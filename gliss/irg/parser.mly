@@ -251,6 +251,7 @@ let top_elsif _ =
 %token	  	IMAGE
 %token    	INITIALA
 %token    	INT
+%token<int> INTERRUPT
 %token<int>	LET
 %token<int>	MEM
 %token<int>	MODE
@@ -758,6 +759,8 @@ Statement:
 		{ syntax_error "syntax error: let [: type] = expression;" }
 |	ForHeader DO Sequence ENDDO
 		{ handle_stat (fun _ -> Sem.make_for $1 $3) }
+| INTERRUPT Constant
+	{handle_stat (fun _ -> Sem.make_interrupt (snd $2)) }
 ;
 
 ForHeader: 

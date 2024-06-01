@@ -62,8 +62,9 @@ let is_stat_attr_recursive sp name =
 		| SET _
 		| CANON_STAT _
 		| ERROR _
-		| LOCAL _ ->
-			false
+		| LOCAL _
+		| INTERRUPT _
+		-> false
 		| SEQ(s1, s2) ->
 			(find_occurence str s1) || (find_occurence str s2)
 		| EVAL(n, attr) ->
@@ -494,6 +495,7 @@ let rec substitute_in_stat name op statement =
 		LOCAL (v, o, t, substitute_in_expr name op i)
 	| FOR(v, uv, t, l, u, b) ->
 		FOR(v, uv, t, l, u, substitute_in_stat name op b)
+	| INTERRUPT c -> INTERRUPT c
 
 
 (**
@@ -534,6 +536,7 @@ let rec change_name_of_var_in_stat sta var_name new_name =
 		LOCAL (v, o, t, change_name_of_var_in_expr i var_name new_name)
 	| FOR(v, uv, t, l, u, b) ->
 		FOR(v, uv, t, l, u, change_name_of_var_in_stat b var_name new_name)
+	| INTERRUPT c -> INTERRUPT c
 
 
 (**
@@ -1102,7 +1105,8 @@ let add_attr_to_spec sp param =
 			| CANON_STAT _
 			| ERROR _
 			| LOCAL _
-			| EVAL _ ->
+			| EVAL _
+			| INTERRUPT _ ->
 				st
 			| SEQ(s1, s2) ->
 				SEQ(aux s1 name, aux s2 name)

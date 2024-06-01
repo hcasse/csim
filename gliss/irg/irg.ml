@@ -371,6 +371,7 @@ type stat =
 	| LINE of string * int * stat								(** Used to store source information.  *)
 	| LOCAL of string * string * type_expr * expr						(** (variable name, original name, variable type, initialization) Local variable declaration *)
 	| FOR of string * string * type_expr * const * const * stat	(** (variable name, unique name, variable type, initial bound, final bound, body) Loop definition *)
+	| INTERRUPT of const
 
 
 (** attribute specifications *)
@@ -615,7 +616,8 @@ let attrs_of spec =
 	| PORT(_,_,_, atts)
 	| VAR (_, _, _, atts)
 	| AND_MODE (_, _, _, atts)
-	| AND_OP (_, _, atts)		-> atts
+	| AND_OP (_, _, atts)
+	-> atts
 	| _ 						-> []
 
 
@@ -1416,6 +1418,8 @@ let rec output_statement_tab out stat tab =
 		output_statement_tab out b (tab + 1);
 		indent ();
 		output_string out "\t\tenddo;\n"
+	| INTERRUPT code ->
+		Printf.fprintf out "Interrupt"; output_const out code
 
 
 (** Print a statement
@@ -1997,6 +2001,7 @@ and line_from_stat stat =
 	| SWITCH_STAT (c, cs, d)	-> line_from_list ([LEXPR c; LSTAT d] @ (List.map (fun (_, s) -> LSTAT s) cs))
 	| LINE (f, l, _) 			-> (f, l)
 	| FOR(_, _, _, _, _, b)		-> line_from_stat b
+	| INTERRUPT (code) -> no_line
 
 and line_from_list lst =
 	match lst with

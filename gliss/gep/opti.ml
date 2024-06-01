@@ -63,6 +63,7 @@ let rec reduce_const_stmt name s =
 			CANON_STAT (id, List.map expr ps)
 		| ERROR _ ->
 			s
+		| INTERRUPT _ -> s
 		| LINE (_, _, s) ->
 			stmt cs s
 		| LOCAL (vn, on, t, i) ->
