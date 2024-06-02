@@ -72,13 +72,13 @@ port ID ( COUNT, TYPE )
 	
 ```
 
-With _ID_ the identifier of the port, _COUNT_ the number of pins in the port and _TYPE_ the type of the port (currently one of `bool`, `int(1)` or `card(1)`). More types will be added in next versions.
+With _ID_ the identifier of the port, _COUNT_ the number of pins in the port and _TYPE_ the type of the port.
 
 The _ATTRIBUTES_ can be:
 
 * `label` = _STRING EXPRESSION_ -- to generate the name of a port pin for an array .
 * `on_update` = { _CODE_ } -- code called each time a register is changed that may be impact the set of pins of the port.
-* `on_input` = { _CODE_ } -- codealled each time the value as input of the port pin is changed.
+* `on_input` = { _CODE_ } -- code called each time the value as input of the port pin is changed.
 
 All expressions and statements used in attributes can use the pre-defined variables below:
 
@@ -87,4 +87,25 @@ All expressions and statements used in attributes can use the pre-defined variab
 
 Notice that each time a port pin is changed (by assignint it), the emitted signal is send to the port connected with this one.
 
+## Events
 
+ The event is an add-on of **CSim** to [NML](NMP.md) and aims to give the ability to simulate an event triggering after a set amount of time. 
+
+An event is described by : 
+
+```
+event ID
+	ATTRIBUTES
+```
+
+With _ID_ the identifier of the event.
+
+The _ATTRIBUTES_ can be: 
+
+* `on_update` = { _CODE_ } -- code called each time a register is changed that may be impact the event.
+* `on_trigger` = { _CODE_ } -- code called when the event trigger.
+
+An event can be schedule using `schedule ID in TIME` with _ID_ the identifier of the event and _TIME_ the time in which the event should trigger.
+An event can be cancelled using `cancel ID` with _ID_ the identifier of the event.
+
+Event supports also included the support of the `now` variable, accessible from anywhere in the code, that is the current internal time of the board (it will be the time of the component when it is implemented.)
