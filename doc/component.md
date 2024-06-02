@@ -47,10 +47,10 @@ With:
 
 The following attributes are usually supported:
 
-* `label` = _STRING EXPRESSION_ -- to generate the name of an item of registe for an array .
+* `label` = _STRING EXPRESSION_ -- to generate the name of an item of registe for an array,
 * `offset` = _INTEGER CONSTANT_ -- define the offset relative to the component base address,
-* `on_write` = { _CODE_ } -- code called the processor performs a write to the register to let the component perform some actions (written value is already stored in the register).
-* `on_read` = { _CODE_ } -- code called before a processor read to setup the content of the register.
+* `on_write` = { _CODE_ } -- code called the processor performs a write to the register to let the component perform some actions (written value is already stored in the register),
+* `on_read` = { _CODE_ } -- code called before a processor read to setup the content of the register,
 * `read_only` = _0 or 1_ -- the register is read-only,
 * `write_only` = _0 or 1_ -- the register is write-only,
 * `intern` = _0 or 1_ -- define if the register is accessible or not by the program,

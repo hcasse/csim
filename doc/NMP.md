@@ -70,11 +70,11 @@ The expressions can be:
 
 The following statements are available:
 
-* _LOCATION_ `=` _EXPRESSION_ `;` for perform an assignment to a register or to a port.
-* `if` _EXPRESSION_ `then` _STATEMENT_ (`else` _STATEMENT_)? `endif;` for a condition.
+* _LOCATION_ `=` _EXPRESSION_ `;` -- for perform an assignment to a register or to a port.
+* `if` _EXPRESSION_ `then` _STATEMENT_ (`else` _STATEMENT_)? `endif;` -- for a condition.
 * `switch(` _EXPRESSION_ `) {` (`case` _CONSTANT_ `:` _STATEMENT_)* (`default:
-` _STATEMENT_)? `};` for a switch-case.
-* `let` _ID_ (`:` TYPE_)? (`=` _EXPRESSON_)? `;` to define a local variable.
+` _STATEMENT_)? `};` -- for a switch-case.
+* `let` _ID_ (`:` TYPE_)? (`=` _EXPRESSON_)? `;` -- to define a local variable.
 * `for` _ID_ `in` _CONSTANT_ `..` _CONSTANT_ `do` _STATEMENT_ `enddo;` -- for a bounded repetition.
 * `interrupt` _CODE_ -- interrupt the program with the given code.
 
