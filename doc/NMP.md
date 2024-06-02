@@ -76,6 +76,7 @@ The following statements are available:
 ` _STATEMENT_)? `};` for a switch-case.
 * `let` _ID_ (`:` TYPE_)? (`=` _EXPRESSON_)? `;` to define a local variable.
 * `for` _ID_ `in` _CONSTANT_ `..` _CONSTANT_ `do` _STATEMENT_ `enddo;` -- for a bounded repetition.
+* `interrupt` _CODE_ -- interrupt the program with the given code.
 
 The _LOCATION_ may be one of specification that may be assigned:
 
