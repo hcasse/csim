@@ -330,7 +330,6 @@ type const =
 
 type expr =
 	  NONE																(** null expression *)
-	| NOW
 	| COERCE of type_expr * expr										(** explicit coercition *)
 	| FORMAT of string * expr list										(** format expression *)
 	| CANON_EXPR of type_expr * string * expr list						(** canonical expression *)
@@ -372,6 +371,7 @@ type stat =
 	| LINE of string * int * stat								(** Used to store source information.  *)
 	| LOCAL of string * string * type_expr * expr						(** (variable name, original name, variable type, initialization) Local variable declaration *)
 	| FOR of string * string * type_expr * const * const * stat	(** (variable name, unique name, variable type, initial bound, final bound, body) Loop definition *)
+	| SCHEDULE of string * expr (** (Event name, when to set event), Scheduling of event in set time*)
 
 
 (** attribute specifications *)
@@ -391,7 +391,6 @@ type canon_type =
 (** Specification of an item *)
 type spec =
 	  UNDEF
-	| NOW
 	| LET of string * type_expr * const				  * attr list
 	| TYPE of string * type_expr					  * attr list
 	| MEM of string * int * type_expr				  * attr list
@@ -434,7 +433,6 @@ let name_of spec =
 	| ATTR(ATTR_STAT(name, _))
 	| ATTR(ATTR_LOC(name, _))
 	| ATTR(ATTR_LINE_INFO(name, _)) -> name
-	| NOW -> "NOW"
 	| ATTR(ATTR_USES)				-> "<ATTR_USES>"
 
 
@@ -468,7 +466,7 @@ let syms : spec StringHashtbl.t = StringHashtbl.create 211
 let _ =
 	StringHashtbl.add syms "__IADDR" (PARAM ("__IADDR", TYPE_EXPR (CARD(32))));
 	StringHashtbl.add syms "__ISIZE" (PARAM ("__ISIZE", TYPE_EXPR (CARD(32))));
-	StringHashtbl.add syms "now" (NOW)
+	StringHashtbl.add syms "now"     (PARAM ("now"    , TYPE_EXPR (CARD(32))))
 
 (** Get the symbol matching the given name or UNDEF if not found.
 	@param n	Symbol to look for.
@@ -905,7 +903,6 @@ let in_spec_context spec f =
 	let (pars, atts) =
 		match spec with
 		| UNDEF
-		| NOW
 		| RES _
 		| EXN _
 		| PARAM _
@@ -1295,8 +1292,6 @@ let rec output_expr out e =
 		output_string out ">(";
 		output_expr out expr;
 		output_string out ")"
-	| NOW ->
-		output_string out "NOW"
 
 
 (** Print an expression.
@@ -1429,6 +1424,9 @@ let rec output_statement_tab out stat tab =
 		output_statement_tab out b (tab + 1);
 		indent ();
 		output_string out "\t\tenddo;\n"
+	| SCHEDULE(event_name, time) ->
+		indent();
+		Printf.fprintf out "schedule %s" event_name
 
 
 (** Print a statement
@@ -1648,8 +1646,6 @@ let output_spec out spec =
 			Printf.fprintf out "\"%s\"\t: " name;
 			output_type_expr out type_res;
 			output_string out "\n"
-	| NOW ->
-		output_string out "NOW"
 	| UNDEF ->
 		output_string out "<UNDEF>"
 
@@ -1975,7 +1971,6 @@ type line =
 let rec line_from_expr expr =
 	match expr with
 	| NONE
-	| NOW
 	| REF _
 	| FIELDOF _
 	| CONST _
@@ -2007,6 +2002,7 @@ and line_from_stat stat =
 	| NOP
 	| EVAL _
 	| ERROR _
+	| SCHEDULE _
 	| LOCAL _					-> no_line
 	| SEQ (s1, s2) 				-> line_from_list [LSTAT s1; LSTAT s2]
 	| SET (l, e) 				-> line_from_expr e

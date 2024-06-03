@@ -45,4 +45,5 @@ event Update
 	}
 	on_trigger = {
 		CR1 = now;
+		schedule Update in ARR;
 	}

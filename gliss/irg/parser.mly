@@ -257,6 +257,7 @@ let top_elsif _ =
 %token<int>	MODE
 %token<int>	OP
 %token<int>	REG
+%token<int> SCHEDULE
 %token    	SWITCH
 %token 	  	SYNTAX
 %token    	THEN
@@ -774,6 +775,8 @@ Statement:
 		{ syntax_error "syntax error: let [: type] = expression;" }
 |	ForHeader DO Sequence ENDDO
 		{ handle_stat (fun _ -> Sem.make_for $1 $3) }
+| 	SCHEDULE ID IN Expr
+		{ handle_stat (fun _ -> Sem.make_schedule $2 $4)}
 ;
 
 ForHeader: 

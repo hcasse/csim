@@ -10,7 +10,7 @@ type byte = card(8)
 reg DISPLAY[1, byte]
     offset = 0x0
 
-port input(1, byte)
+port input(2, byte)
     on_input = {
         DISPLAY = input;
     }

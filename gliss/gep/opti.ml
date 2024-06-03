@@ -61,6 +61,7 @@ let rec reduce_const_stmt name s =
 			SET(loc l, expr e)
 		| CANON_STAT (id, ps) ->
 			CANON_STAT (id, List.map expr ps)
+		| SCHEDULE _
 		| ERROR _ ->
 			s
 		| LINE (_, _, s) ->

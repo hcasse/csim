@@ -2013,8 +2013,6 @@ let make_ref id =
 	match get_symbol id with
 	| UNDEF ->
 		error_undefined id
-	| NOW ->
-		REF (CARD 32, id)
 	| ATTR (ATTR_EXPR (_, e)) ->
 		REF (get_type_expr e, id)
 	| LET (_, t, _, _)
@@ -2371,6 +2369,13 @@ let prepare_for v t l u =
 	@param b	For body. *)
 let make_for (v, uv, t, l, u) b =
 	FOR(v, uv, t, l, u, b)
+
+(** Build a schedule statement
+	@
+		 *)
+let make_schedule event_name time = 
+	SCHEDULE(event_name, time)
+
 
 
 (** Make a local variable definition with its own type.

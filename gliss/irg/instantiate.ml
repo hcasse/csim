@@ -62,6 +62,7 @@ let is_stat_attr_recursive sp name =
 		| SET _
 		| CANON_STAT _
 		| ERROR _
+		| SCHEDULE _
 		| LOCAL _ ->
 			false
 		| SEQ(s1, s2) ->
@@ -76,7 +77,9 @@ let is_stat_attr_recursive sp name =
 		| LINE(s, i, st) ->
 			find_occurence str st
 		| FOR(v, uv, t, l, u, b) ->
-			find_occurence str b in
+			find_occurence str b
+		in
+			
 	let a = get_attr sp name in
 	find_occurence name a
 
@@ -304,6 +307,7 @@ let rec substitute_in_expr name op ex =
 		CAST(size, substitute_in_expr name op expr)
 
 
+
 (**	Rename any occcurences of the given name in an expression
 	@param	ex			The expression in which we rename.
 	@param	var_name	Name of the var to be renamed.
@@ -494,6 +498,8 @@ let rec substitute_in_stat name op statement =
 		LOCAL (v, o, t, substitute_in_expr name op i)
 	| FOR(v, uv, t, l, u, b) ->
 		FOR(v, uv, t, l, u, substitute_in_stat name op b)
+	| SCHEDULE (event_name, time) ->
+		SCHEDULE (event_name, substitute_in_expr name op time)
 
 
 (**
@@ -534,6 +540,8 @@ let rec change_name_of_var_in_stat sta var_name new_name =
 		LOCAL (v, o, t, change_name_of_var_in_expr i var_name new_name)
 	| FOR(v, uv, t, l, u, b) ->
 		FOR(v, uv, t, l, u, change_name_of_var_in_stat b var_name new_name)
+	| SCHEDULE (event_name, time) ->
+		SCHEDULE (event_name, change_name_of_var_in_expr time var_name new_name)
 
 
 (**
@@ -1102,6 +1110,7 @@ let add_attr_to_spec sp param =
 			| CANON_STAT _
 			| ERROR _
 			| LOCAL _
+			| SCHEDULE _
 			| EVAL _ ->
 				st
 			| SEQ(s1, s2) ->

@@ -1007,6 +1007,7 @@ let rec prepare_stat info stat =
 
 	match stat with
 	| Irg.NOP
+	| Irg.SCHEDULE _
 	| Irg.ERROR _ ->
 		stat
 
@@ -1490,6 +1491,7 @@ let rec multiple_stats stat =
 	| Irg.ERROR _
 	| Irg.SWITCH_STAT _
 	| Irg.LOCAL _
+	| Irg.SCHEDULE _
 	| Irg.FOR _				-> false
 	| Irg.EVAL _
 	| Irg.SEQ _
@@ -1592,6 +1594,14 @@ let rec gen_stat info stat =
 				indented (fun _ -> gen_stat info epart);
 				if emult then line (fun _ -> out "}")
 			end
+
+	| Irg.SCHEDULE (event_name, time) ->
+		line (fun _ ->
+			Printf.fprintf info.out "csim_evt_t *%s = malloc(sizeof(csim_evt_t));
+			%s->date = __now +" event_name event_name; gen_expr info time true; Printf.fprintf info.out ";
+			%s->inst = inst;
+			%s->trigger = on_trigger_%s;
+			csim_record_event(inst -> board, %s);" event_name event_name event_name event_name;)
 
 	| Irg.SWITCH_STAT (cond, cases, def) ->
 		line (fun _ ->

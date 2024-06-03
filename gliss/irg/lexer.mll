@@ -92,6 +92,7 @@ let keywords = [
 	("port",		PORT 0);
 	("var",        	VAR 0);
 	("resource",    RESOURCE 0);
+	("schedule",	SCHEDULE 0);
 	("syntax",      SYNTAX);
 	("switch",      SWITCH);
 	("then",        THEN);

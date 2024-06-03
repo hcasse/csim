@@ -32,7 +32,7 @@ $(foreach ports)
 	$(end)
 $(end)
 
-#define now inst->board->date
+#define __now inst->board->date
 
 
 /**
