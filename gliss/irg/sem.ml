@@ -2371,12 +2371,17 @@ let make_for (v, uv, t, l, u) b =
 	FOR(v, uv, t, l, u, b)
 
 (** Build a schedule statement
-	@
+	@param event_name event name
+	@param time				time in which to start the event
 		 *)
 let make_schedule event_name time = 
 	SCHEDULE(event_name, time)
 
-
+(** Build a cancel statement
+	@param event_name event name
+	*)
+let make_cancel event_name = 
+	CANCEL(event_name)
 
 (** Make a local variable definition with its own type.
 	@param id	Local variable identifier.

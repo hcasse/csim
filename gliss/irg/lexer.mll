@@ -93,6 +93,7 @@ let keywords = [
 	("var",        	VAR 0);
 	("resource",    RESOURCE 0);
 	("schedule",	SCHEDULE 0);
+	("cancel", 		CANCEL);
 	("syntax",      SYNTAX);
 	("switch",      SWITCH);
 	("then",        THEN);

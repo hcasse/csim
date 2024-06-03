@@ -229,6 +229,7 @@ let top_elsif _ =
 %token    	ALIAS
 %token	  	ATTR
 %token    	BOOL
+%token		CANCEL
 %token		CANON
 %token    	CARD
 %token    	CASE
@@ -777,6 +778,8 @@ Statement:
 		{ handle_stat (fun _ -> Sem.make_for $1 $3) }
 | 	SCHEDULE ID IN Expr
 		{ handle_stat (fun _ -> Sem.make_schedule $2 $4)}
+| 	CANCEL ID
+		{ handle_stat (fun _ -> Sem.make_cancel $2)}
 ;
 
 ForHeader: 

@@ -63,6 +63,7 @@ let is_stat_attr_recursive sp name =
 		| CANON_STAT _
 		| ERROR _
 		| SCHEDULE _
+		| CANCEL _
 		| LOCAL _ ->
 			false
 		| SEQ(s1, s2) ->
@@ -500,6 +501,8 @@ let rec substitute_in_stat name op statement =
 		FOR(v, uv, t, l, u, substitute_in_stat name op b)
 	| SCHEDULE (event_name, time) ->
 		SCHEDULE (event_name, substitute_in_expr name op time)
+	| CANCEL (event_name) ->
+		CANCEL (event_name)
 
 
 (**
@@ -542,6 +545,8 @@ let rec change_name_of_var_in_stat sta var_name new_name =
 		FOR(v, uv, t, l, u, change_name_of_var_in_stat b var_name new_name)
 	| SCHEDULE (event_name, time) ->
 		SCHEDULE (event_name, change_name_of_var_in_expr time var_name new_name)
+	| CANCEL (event_name) ->
+		CANCEL (event_name)
 
 
 (**
@@ -1111,6 +1116,7 @@ let add_attr_to_spec sp param =
 			| ERROR _
 			| LOCAL _
 			| SCHEDULE _
+			| CANCEL _
 			| EVAL _ ->
 				st
 			| SEQ(s1, s2) ->

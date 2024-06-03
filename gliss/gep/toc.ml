@@ -1008,6 +1008,7 @@ let rec prepare_stat info stat =
 	match stat with
 	| Irg.NOP
 	| Irg.SCHEDULE _
+	| Irg.CANCEL _
 	| Irg.ERROR _ ->
 		stat
 
@@ -1492,6 +1493,7 @@ let rec multiple_stats stat =
 	| Irg.SWITCH_STAT _
 	| Irg.LOCAL _
 	| Irg.SCHEDULE _
+	| Irg.CANCEL _
 	| Irg.FOR _				-> false
 	| Irg.EVAL _
 	| Irg.SEQ _
@@ -1602,7 +1604,8 @@ let rec gen_stat info stat =
 			%s->inst = inst;
 			%s->trigger = on_trigger_%s;
 			csim_record_event(inst -> board, %s);" event_name event_name event_name event_name;)
-
+	| Irg.CANCEL (event_name) ->
+		line (fun _ -> Printf.fprintf info.out "not implemented yet")
 	| Irg.SWITCH_STAT (cond, cases, def) ->
 		line (fun _ ->
 			out "switch(";

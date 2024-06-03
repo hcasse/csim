@@ -372,6 +372,7 @@ type stat =
 	| LOCAL of string * string * type_expr * expr						(** (variable name, original name, variable type, initialization) Local variable declaration *)
 	| FOR of string * string * type_expr * const * const * stat	(** (variable name, unique name, variable type, initial bound, final bound, body) Loop definition *)
 	| SCHEDULE of string * expr (** (Event name, when to set event), Scheduling of event in set time*)
+	| CANCEL of string (** (Event name), Cancelling an event*)
 
 
 (** attribute specifications *)
@@ -1427,6 +1428,9 @@ let rec output_statement_tab out stat tab =
 	| SCHEDULE(event_name, time) ->
 		indent();
 		Printf.fprintf out "schedule %s" event_name
+	| CANCEL(event_name) ->
+	indent();
+		Printf.fprintf out "cancel %s" event_name
 
 
 (** Print a statement
@@ -2003,6 +2007,7 @@ and line_from_stat stat =
 	| EVAL _
 	| ERROR _
 	| SCHEDULE _
+	| CANCEL _
 	| LOCAL _					-> no_line
 	| SEQ (s1, s2) 				-> line_from_list [LSTAT s1; LSTAT s2]
 	| SET (l, e) 				-> line_from_expr e
