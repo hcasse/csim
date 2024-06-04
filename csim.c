@@ -617,7 +617,7 @@ void csim_record_event(csim_board_t *board, csim_evt_t *evt) {
  * @ingroup csim
  */
 void csim_cancel_event(csim_board_t *board, csim_evt_t *evt) {
-	if(board->evts == evt) {
+	if(board->evts->inst == evt->inst && board->evts->trigger == evt->trigger) {
 		evt->next->prev = NULL;
 		board->evts = evt->next;
 		evt->next = NULL;

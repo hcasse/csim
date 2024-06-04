@@ -1605,7 +1605,11 @@ let rec gen_stat info stat =
 			%s->trigger = on_trigger_%s;
 			csim_record_event(inst -> board, %s);" event_name event_name event_name event_name;)
 	| Irg.CANCEL (event_name) ->
-		line (fun _ -> Printf.fprintf info.out "not implemented yet")
+		line (fun _ ->
+			Printf.fprintf info.out "csim_evt_t *%s = malloc(sizeof(csim_evt_t));
+			%s->inst = inst;
+			%s->trigger = on_trigger_%s;
+			csim_cancel_event(inst -> board, %s);" event_name event_name event_name event_name event_name;)
 	| Irg.SWITCH_STAT (cond, cases, def) ->
 		line (fun _ ->
 			out "switch(";
