@@ -5,7 +5,7 @@ WITH_ARMV5T=1
 YAML=$(PWD)/easy-yaml
 
 HEADERS=csim.h
-COMPONENTS= seven_seg_controller.c seven_seg_display.c led.c button.c leds10.c leds10.c
+COMPONENTS= seven_seg_controller.c seven_seg_display.c led.c button.c leds10.c leds10.c timer.c
 SOURCES=csim.c yaml.c  csim-rt.o arm_core.c loader.c $(COMPONENTS)
 #ARMV5T=armv5t
 

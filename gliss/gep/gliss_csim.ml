@@ -155,8 +155,8 @@ let get_registers info f dict =
 		("NAME", out (fun _ -> name)) ::
 		("multiple", Templater.BOOL (fun _ -> count > 1)) ::
 		("offset", text offset) ::
-		("on_input", Templater.TEXT (fun out ->
-			let action = Irg.attr_stat "on_input" atts Irg.NOP in
+		("on_write", Templater.TEXT (fun out ->
+			let action = Irg.attr_stat "on_write" atts Irg.NOP in
 			let info = Toc.info () in
 			info.Toc.out <- out;
 			Toc.gen_stat info (Toc.prepare_stat info action)))::

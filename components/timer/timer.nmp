@@ -1,0 +1,58 @@
+let component = "timer"
+let arch = "stm32"
+let license = "GPL"
+let copyright = "University of Toulouse 3"
+let date = "03/04/2024"
+
+type bit = card(1)
+type word = card(32)
+
+reg STATUS[1, word]
+    offset = 0x0
+
+
+reg START_VAL_HIGH[1, word]
+    offset = 0xC
+    //init = 0
+
+reg START_VAL_LOW[1, word]
+    offset = 0x8
+    //init = 0b1111111
+
+reg COUNTER_SNAPSHOT_HIGH[1,word]
+        offset = 0x14
+
+reg COUNTER_SNAPSHOT_LOW[1,word]
+    offset = 0x10
+    on_write = {
+        COUNTER_SNAPSHOT_LOW = now<0..16>;
+        COUNTER_SNAPSHOT_HIGH = now<0..16>;
+    }
+
+
+reg CONTROL[1, word]
+    on_write = { 
+        if CONTROL<2..2> == 1 then //start = 1 
+            schedule run in (START_VAL_HIGH<<16) + START_VAL_LOW;
+            STATUS<1..1> = 1; // set RUN to 1
+            CONTROL<2..2> = 0; // set start back to zero 
+        endif;
+
+        if CONTROL<3..3> == 1 then //stop = 1
+            cancel run;
+            STATUS<1..1> = 0; // set RUN to 0
+            CONTROL<3..3> = 0; // set stop back to zero
+        endif;
+
+        // ITO not working because interrupts aren't fully implemented yet.
+    }
+    offset = 0x4
+
+event run 
+    on_trigger = {
+        STATUS<0..0> = 1;
+        if CONTROL<1..1> == 1 then
+            schedule run in (START_VAL_HIGH<<16) + START_VAL_LOW;
+        endif;
+
+    }

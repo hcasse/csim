@@ -439,7 +439,7 @@ let rec type_to_int t =
 	@param prfx	prefix or not by PROC_NAME and uppercase or not *)
 let state_macro info name prfx =
 	if prfx then
-		Printf.sprintf "%s_%s" (Config.uppercase info.proc) (Config.uppercase name)
+		Printf.sprintf "_%s" (Config.uppercase name)
 	else
 		name
 
@@ -448,7 +448,7 @@ let state_macro info name prfx =
 	@param info	Generation information.
 	@param name	Parameter name. *)
 let param_macro info name =
-	Printf.sprintf "%s_%s_%s" (Config.uppercase info.proc) (Config.uppercase info.iname) name
+	Printf.sprintf "__%s"  name
 
 
 (** Generate the name of a temporary of index i.
@@ -1443,8 +1443,7 @@ and gen_bitfield info typ expr lo up prfx =
 
 	(* stop printing after the expr and the bounds, a closing parens or the bit_order param has to be added apart *)
 	let output_field_common_C_code sufx a b arg3 b_o =
-		Printf.fprintf info.out "%s_field%s%s("
-			info.proc
+		Printf.fprintf info.out "_field%s%s("
 			(type_to_mem (convert_type (Sem.get_type_expr expr)))
 			sufx;
 		gen_expr info expr prfx;
@@ -1456,7 +1455,7 @@ and gen_bitfield info typ expr lo up prfx =
 		else output_string info.out ")" in
 
 	let output_bit b =
-		Printf.fprintf info.out "%s_bit%s(" info.proc (type_to_mem (convert_type (Sem.get_type_expr expr)));
+		Printf.fprintf info.out "_bit%s(" (type_to_mem (convert_type (Sem.get_type_expr expr)));
 		gen_expr info expr prfx;
 		output_string info.out ", ";
 		gen_expr info b prfx;
@@ -1587,9 +1586,9 @@ let rec gen_stat info stat =
 		line (fun _ ->
 			out "if(";
 			gen_expr info cond true;
-			out (if tmult then ") {" else ")"));
+			out ") {");
 		indented (fun _ -> if (is_nop tpart) then line (fun _ -> out ";") else gen_stat info tpart);
-		if tmult then line (fun _ -> out "}");
+		line (fun _ -> out "}");
 		if not (is_nop epart) then
 			begin
 				line (fun _ -> out (if emult then "else {" else "else"));
@@ -1671,7 +1670,7 @@ and set_field info typ id idx lo up expr =
 		let tl = if arg3 then [e_bo] else [] in
 		Irg.CANON_EXPR (
 			typ,
-			Printf.sprintf "%s_set_field%s%s" info.proc (type_to_mem (convert_type typ)) sufx,
+			Printf.sprintf "_set_field%s%s" (type_to_mem (convert_type typ)) sufx,
 			e :: expr :: a :: b :: tl
 		)
 	in

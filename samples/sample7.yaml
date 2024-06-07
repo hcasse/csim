@@ -1,0 +1,13 @@
+name: sample1
+components
+  CORE
+    type: arm
+  LED
+    type: led
+    base: A0000000
+
+  TIM
+    type: timer
+    base: 0xFF202000
+    key: b
+connect

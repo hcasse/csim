@@ -73,7 +73,7 @@ $(end)
 
 /* pre-definitiion of event trigger functions */
 $(foreach events)
-	static void on_trigger_$(name)(csim_inst_t *inst);
+	static void on_trigger_$(name)(csim_evt_t *evt);
 $(end)
 
 static void on_update_all(csim_inst_t *inst) {
@@ -171,11 +171,11 @@ static void set_$(name)(csim_inst_t *inst, int num, csim_word_t val) {
 
 static void write_$(name)(csim_inst_t *inst, int num, csim_word_t val) {
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+	set_$(name)(inst, num, val);
+
 	$(ifdef on_write)
 		$(on_write);
-		on_update_all();
-	$(else)
-		set_$(name)(inst, num, val);
+		on_update_all(inst);
 	$(end)	
 }
 
@@ -269,11 +269,14 @@ $(foreach events)
 
 static void on_update_$(name)(csim_inst_t *inst) {
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+
 	$(on_update)
 }
 
-static void on_trigger_$(name)(csim_inst_t *inst) {
-	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+static void on_trigger_$(name)(csim_evt_t *evt) {
+	$(comp)_inst_t *__inst = ($(comp)_inst_t *)evt->inst;
+	csim_inst_t *inst = evt->inst;
+
 	$(on_trigger)
 }
 
