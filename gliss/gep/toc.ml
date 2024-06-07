@@ -1580,7 +1580,7 @@ let rec gen_stat info stat =
 				(cstring msg))
 
 	| Irg.INTERRUPT c -> line ( fun _ -> Printf.fprintf 
-			info.out "inst -> inst -> board -> cores -> interrupt(%d);" (Sem.to_int(c)))
+			info.out "((csim_core_t *) inst -> board -> cores -> inst.comp) -> interrupt(inst -> board -> cores,%d);;" (Sem.to_int(c)))
 
 	| Irg.IF_STAT (cond, tpart, epart) ->
 		let tmult = multiple_stats tpart in

@@ -201,7 +201,7 @@ static csim_reg_t regs[] = {
 
 /* predeclaration of port-functions */
 $(foreach ports)
-static void on_input_$(name)(csim_port_inst_t *inst, csim_value_type_t type, csim_value_t val);
+static void on_input_$(name)(csim_inst_t *inst, csim_value_type_t type, csim_value_t val);
 $(end)
 
 
@@ -232,10 +232,10 @@ static csim_port_t ports[] = {
 $(foreach ports)
 /* $(name) port functions */
 
-static void on_input_$(name)(csim_port_inst_t *inst, csim_value_type_t type, csim_value_t val) {
-	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst->inst;
+static void on_input_$(name)(csim_inst_t *inst, csim_value_type_t type, csim_value_t val) {
+	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
 	$(ctype) $(name) = __inst->$(name);
-	int ____INDEX = inst->port - (ports + $(name)_BASE);
+	int ____INDEX = __inst->inst.comp.ports - (ports + $(name)_BASE);
 	if (type == CSIM_DIGITAL)
 		$(name) = val.digital;
 	if (type == CSIM_ANALOG)

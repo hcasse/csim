@@ -32,6 +32,9 @@
 #include "arm_core.h"
 
 
+// Adresses des interruptions, l'indice dans le tableau est le code d'interruption.
+int TAB_INTERRUPT[] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
+
 typedef struct {
 	csim_core_inst_t inst;
 	arm_platform_t *pf;
@@ -104,6 +107,12 @@ void *memory(csim_core_inst_t *_inst) {
 	return arm_get_memory(inst->pf, ARM_MAIN_MEMORY);
 }
 
+void interrupt(csim_core_inst_t *_inst,int codeInterrupt) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	arm_set_next_address(inst->sim,TAB_INTERRUPT[codeInterrupt]);
+	fprintf(stderr,"Interruption numéro : %d\nNouveau pc = %d\n",codeInterrupt,pc(_inst));
+}
+
 csim_core_t arm_component = {
 	{
 		"arm",
@@ -121,5 +130,6 @@ csim_core_t arm_component = {
 	load,
 	pc,
 	disasm,
-	memory
+	memory,
+	interrupt
 };

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "vcruntime.h": "c",
+        "cstdint": "c",
+        "type_traits": "c"
+    }
+}

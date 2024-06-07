@@ -182,13 +182,12 @@ struct csim_core_t {
 	csim_addr_t (*pc)(csim_core_inst_t *inst);
 	void (*disasm)(csim_core_inst_t *inst, csim_addr_t addr, char buf[]);
 	void *(*memory)(csim_core_inst_t *inst);
-	void * (*interrupt)(int codeInterrupt); 
+	void (*interrupt)(csim_core_inst_t *_inst,int codeInterrupt); 
 };
 
 struct csim_core_inst_t {
 	csim_inst_t inst;
 	struct csim_core_inst_t *next;
-	void * (*interrupt)(int codeInterrupt); 
 };
 
 
