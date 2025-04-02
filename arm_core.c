@@ -21,8 +21,8 @@
 
 #include <string.h>
 
-#define CSIM_INSIDE
-#include "mem.h"
+/*#define CSIM_INSIDE
+#include "mem.h"*/
 #include "csim.h"
 
 #include <arm/api.h>
@@ -124,6 +124,71 @@ static unsigned inst_size(csim_core_inst_t *_inst) {
 	return res;
 }
 
+static void on_io(csim_addr_t addr, int size, void *data, int access, void *cdata) {
+	csim_board_t *board = (csim_board_t *)cdata;
+
+	/* read */
+	if(access == ARM_MEM_READ)
+		switch(size) {
+		case 1:
+			*(int8_t *)data = csim_read_io(board, addr, size);
+			return;
+		case 2:
+			*(int16_t *)data = csim_read_io(board, addr, size);
+			return;
+		case 4:
+			*(int32_t *)data = csim_read_io(board, addr, size);
+			return;
+		}
+
+	/* write */
+	else
+		switch(size) {
+			case 1:
+				csim_write_io(board, addr, size, *(int8_t *)data);
+				return;
+			case 2:
+				csim_write_io(board, addr, size, *(int16_t *)data);
+				return;
+			case 4:
+				csim_write_io(board, addr, size, *(int32_t *)data);
+				return;
+		}
+
+	csim_log(board, CSIM_ERROR, "unsupported access size (%d bytes) at %08x", size, addr);
+}
+
+static void install_io(csim_core_inst_t *_inst, csim_addr_t addr, int size) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	arm_set_range_callback(
+		arm_get_memory(inst->pf, ARM_MAIN_MEMORY),
+		addr,
+		addr + size - 1,
+		on_io,
+		inst->inst.inst.board
+	);
+}
+
+static uint8_t get_byte(csim_core_inst_t *_inst, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	return arm_mem_read8(arm_get_memory(inst->pf, ARM_MAIN_MEMORY), addr);
+}
+
+static uint16_t get_half(csim_core_inst_t *_inst, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	return arm_mem_read16(arm_get_memory(inst->pf, ARM_MAIN_MEMORY), addr);
+}
+
+static uint32_t get_word(csim_core_inst_t *_inst, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	return arm_mem_read32(arm_get_memory(inst->pf, ARM_MAIN_MEMORY), addr);
+}
+
+static uint64_t get_long(csim_core_inst_t *_inst, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	return arm_mem_read64(arm_get_memory(inst->pf, ARM_MAIN_MEMORY), addr);
+}
+
 
 static void arm_make_R(csim_inst_t *inst, int num, char *buf, int size) {
 	snprintf(buf, size, "R%d", num);
@@ -172,7 +237,11 @@ csim_core_t arm_component = {
 	load,
 	pc,
 	disasm,
-	memory,
 	interrupt,
-	inst_size
+	inst_size,
+	install_io,
+	get_byte,
+	get_half,
+	get_word,
+	get_long
 };

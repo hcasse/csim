@@ -50,11 +50,11 @@ csim-run: csim-run.o libcsim.a
 libcsim.a: $(OBJECTS)
 	ar rcs $@ $(OBJECTS)
 
-csim.o: csim.h mem.h
+csim.o: csim.h
 mem.o: mem.h
 test-csim.o: csim.h
 yaml.o: yaml.h
-test2.o: csim.h mem.h yaml.h led.h button.h
+test2.o: csim.h yaml.h led.h button.h
 csim-rt.o: csim-rt.h
 loader.o: csim.h yaml.h
 %.o: $(COMPONENTS)

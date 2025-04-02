@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CSIM_INSIDE
-#include "mem.h"
+/*#define CSIM_INSIDE
+#include "mem.h"*/
 #include "csim.h"
 
 #include "yaml.h"
@@ -63,10 +63,9 @@ typedef struct {
 		IN_LINK
 	} state;
 	csim_board_t *board;
-	csim_memory_t *mem;
 	const char *name, *type;
 	char key;
-	arm_address_t base;
+	csim_addr_t base;
 	csim_inst_t *from_inst, *to_inst;
 	csim_port_t *from_port, *to_port;
 	int conf_cnt;
@@ -134,7 +133,7 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
 			return YAML_DONE;
 		}
 		else if(strcmp(key, "components") == 0) {
-			loader->board = csim_new_board(loader->name, loader->mem);
+			loader->board = csim_new_board(loader->name);
 			loader->board->level = CSIM_ERROR;
 			loader->state = IN_COMPS;
 			return YAML_MAP;
@@ -260,9 +259,9 @@ static void csim_loader_on_error(const char *msg, void *data) {
  * @param mem		Memory to use for I/O registers.
  * @return			Created board or NULL if there is an error.
  */
-csim_board_t *csim_load_board(const char *path, csim_memory_t *mem) {
+csim_board_t *csim_load_board(const char *path) {
 	loader_t loader = {
-		TOP, NULL, mem, "anonymous", NULL, '\0', 0,
+		TOP, NULL, "anonymous", NULL, '\0', 0,
 		NULL, NULL, NULL, NULL,
 		0, { NULL }
 	};

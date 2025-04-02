@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CSIM_INSIDE
-#include "mem.h"
+/*#define CSIM_INSIDE
+#include "mem.h"*/
 #include "csim.h"
 
 /**
@@ -205,7 +205,7 @@ void csim_write_io(csim_board_t *board, csim_addr_t addr, int size, csim_word_t 
  * @param cdata		Should be board.
  * @ingroup csim
  */
-static void csim_on_io(csim_addr_t addr, int size, void *data, int access, void *cdata) {
+/*static void csim_on_io(csim_addr_t addr, int size, void *data, int access, void *cdata) {
 	csim_board_t *board = (csim_board_t *)cdata;
 	int h = CSIM_IO_HASH(addr);
 	for(csim_io_t *p = board->ios[h]; p != NULL; p = p->next)
@@ -241,7 +241,7 @@ static void csim_on_io(csim_addr_t addr, int size, void *data, int access, void 
 					assert(0);
 				}
 		}
-}
+}*/
 
 
 /**
@@ -256,10 +256,8 @@ static void csim_io_install(
 	csim_reg_t *reg,
 	csim_addr_t addr
 ) {
-	csim_addr_t pa = addr & ~(CSIM_PAGE_SIZE - 1);
-	if(csim_get_callback_data(board->mem, pa) == NULL)
-		csim_set_range_callback(board->mem, pa, pa + reg->size - 1, csim_on_io, board);
-
+	csim_core_inst_t *core = board->cores;
+	((csim_core_t *)(core->inst.comp))->install_io(core, addr, reg->size);
 }
 
 /**
@@ -283,7 +281,7 @@ void csim_io_add(csim_reg_t *reg, csim_inst_t *inst) {
 		board->ios[h] = io;
 
 		/* install the IO in memory */
-		csim_io_install(board, reg, a);
+		csim_io_install(inst->board, reg, a);
 	}
 }
 
@@ -315,11 +313,10 @@ void csim_io_remove(csim_reg_t * reg, csim_inst_t *inst) {
 /**
  * Initialize the board.
  * @param name	Board name.
- * @param mem	Memory to use (possibly NULL and then derived from core).
  * @return		Built board (or null if allocation fails).
  * @ingroup csim
  */
-csim_board_t *csim_new_board(const char *name, csim_memory_t *mem) {
+csim_board_t *csim_new_board(const char *name) {
 	csim_board_t *board = (csim_board_t *)malloc(sizeof(csim_board_t));
 	if(board == NULL)
 		return NULL;
@@ -331,7 +328,7 @@ csim_board_t *csim_new_board(const char *name, csim_memory_t *mem) {
 	board->date = 0;
 	board->evts = NULL;
 	board->level = CSIM_INFO;
-	board->mem = mem;
+	//board->mem = mem;
 	board->log = csim_log;
 	memset(board->ios, 0, sizeof(csim_io_t *) * CSIM_IO_SIZE);
 	return board;
@@ -374,7 +371,7 @@ void csim_delete_board(csim_board_t *board) {
 void csim_reset_board(csim_board_t *board) {
 
 	/* reset memory */
-	csim_mem_reset(board->mem);
+	//csim_mem_reset(board->mem);
 
 	/* reset all component instances */
 	for(csim_inst_t *i = board->insts; i != NULL; i = i->next)
@@ -414,7 +411,7 @@ static void csim_record_regs(csim_board_t *board, csim_inst_t *inst) {
 	csim_component_t *comp = inst->comp;
 	for(int j = 0; j < comp->reg_cnt; j++)
 		if((comp->regs[j].flags & CSIM_INTERN) == 0)
-		csim_io_add(&comp->regs[j], inst);
+			csim_io_add(&comp->regs[j], inst);
 }
 
 /**
@@ -432,6 +429,7 @@ static void csim_record_regs(csim_board_t *board, csim_inst_t *inst) {
  * @ingroup csim
  */
 csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp, const char *name, csim_addr_t base, csim_confs_t confs) {
+	int first_core = 0;
 
 	/* build the instance */
 	uint8_t *p = (uint8_t *)malloc(comp->size + comp->port_cnt * sizeof(csim_port_inst_t));
@@ -459,8 +457,16 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	if(comp->type == CSIM_CORE) {
 		csim_core_inst_t *ci = (csim_core_inst_t *)i;
 		csim_core_t *cc = (csim_core_t *)comp;
-		ci->next = board->cores;
-		board->cores = ci;
+		ci->next = NULL;
+		if(board->cores == NULL) {
+			first_core = 1;
+			board->cores = ci;
+		}
+		else {
+			csim_core_inst_t *p = board->cores;
+			for(; p->next != NULL; p = p->next);
+			p->next = ci;
+		}
 		if(board->clock == 0)
 			board->clock = cc->clock;
 		else if(cc->clock != 0) {
@@ -482,14 +488,12 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	comp->construct(i, confs);
 
 	/* record the IO registers */
-	if(board->mem != NULL)
-		csim_record_regs(board, i);
-	else if(comp->type == CSIM_CORE) {
-		board->mem = csim_core_memory((csim_core_inst_t *)i);
-		for(csim_inst_t *ui = board->insts; ui != NULL; ui = ui->next)
-			csim_record_regs(board, ui);
+	if(first_core) {
+		for(csim_inst_t *inst = board->insts; inst != NULL; inst = inst->next)
+			csim_record_regs(board, inst);
 	}
-
+	else
+		csim_record_regs(board, i);
 	return i;
 }
 
@@ -784,9 +788,9 @@ csim_component_t *csim_find_component(const char *name) {
  * @param addr		Address to read byte from.
  * @return			Read byte.
  */
-uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read8(board->mem, addr);
-}
+/*uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr) {
+	//return csim_mem_read8(board->mem, addr);
+}*/
 
 /**
  * Read an half-word in memory.
@@ -794,9 +798,9 @@ uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr) {
  * @param addr		Address to read half-word from.
  * @return			Read half-word.
  */
-uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read16(board->mem, addr);
-}
+/*uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr) {
+	//return csim_mem_read16(board->mem, addr);
+}*/
 
 /**
  * Read a word in memory.
@@ -804,9 +808,9 @@ uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr) {
  * @param addr		Address to read word from.
  * @return			Read word.
  */
-uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read32(board->mem, addr);
-}
+/*uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr) {
+	//return csim_mem_read32(board->mem, addr);
+}*/
 
 /**
  * Read a long word in memory.
@@ -814,6 +818,6 @@ uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr) {
  * @param addr		Address to read long word from.
  * @return			Read long word.
  */
-uint64_t csim_long_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read64(board->mem, addr);
-}
+/*uint64_t csim_long_at(csim_board_t *board, csim_addr_t addr) {
+	//return csim_mem_read64(board->mem, addr);
+}*/

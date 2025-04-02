@@ -21,16 +21,8 @@
 #ifndef GLISS2_CSIM_H
 #define GLISS2_CSIM_H
 
-//#include "mem.h"
 #include <stdio.h>
 #include <stdint.h>
-
-#ifndef CSIM_INSIDE
-	typedef void *csim_memory_t;
-#endif
-
-#define CSIM_READ	0x0001
-#define CSIM_WRITE	0x0002
 
 typedef uint32_t csim_addr_t;
 typedef uint32_t csim_word_t;
@@ -38,6 +30,7 @@ typedef uint32_t csim_size_t;
 typedef uint64_t csim_date_t;
 typedef uint64_t csim_time_t;
 typedef uint64_t csim_clock_t;
+typedef int64_t csim_int_t;
 
 typedef enum csim_rtype_t {
 	CSIM_NORTYPE = 0,
@@ -184,9 +177,13 @@ struct csim_core_t {
 	int (*load)(csim_core_inst_t *inst, const char *path);
 	csim_addr_t (*pc)(csim_core_inst_t *inst);
 	void (*disasm)(csim_core_inst_t *inst, csim_addr_t addr, char buf[]);
-	void *(*memory)(csim_core_inst_t *inst);
 	void (*interrupt)(csim_core_inst_t *_inst, int codeInterrupt);
 	unsigned (*inst_size)(csim_core_inst_t *inst);
+	void (*install_io)(csim_core_inst_t *inst, csim_addr_t addr, int size);
+	uint8_t (*get_byte)(csim_core_inst_t *inst, csim_addr_t addr);
+	uint16_t (*get_half)(csim_core_inst_t *inst, csim_addr_t addr);
+	uint32_t (*get_word)(csim_core_inst_t *inst, csim_addr_t addr);
+	uint64_t (*get_long)(csim_core_inst_t *inst, csim_addr_t addr);
 };
 
 struct csim_core_inst_t {
@@ -235,7 +232,6 @@ struct csim_board_t {
 	csim_date_t date;
 	csim_evt_t *evts;
 	csim_level_t level;
-	csim_memory_t *mem;
 	void (*log)(csim_board_t *board, csim_level_t level, const char *msg, ...);
 	csim_io_t *ios[CSIM_IO_SIZE];
 };
@@ -243,9 +239,9 @@ struct csim_board_t {
 csim_port_type_t csim_get_unit(const char *name);
 const char *csim_unit_name(csim_port_type_t type);
 
-csim_board_t *csim_new_board(const char *name, csim_memory_t *mem);
+csim_board_t *csim_new_board(const char *name);
 void csim_delete_board(csim_board_t *board);
-csim_board_t *csim_load_board(const char *path, csim_memory_t *mem);
+csim_board_t *csim_load_board(const char *path);
 void csim_reset_board(csim_board_t *board);
 
 csim_component_t *csim_find_component(const char *name);
@@ -269,11 +265,6 @@ void csim_run(csim_board_t *board, csim_time_t time);
 
 void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state);
 
-uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr);
-uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr);
-uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr);
-uint64_t csim_long_at(csim_board_t *board, csim_addr_t addr);
-
 csim_word_t csim_read_io(csim_board_t *board, csim_addr_t addr, int size);
 void csim_write_io(csim_board_t *board, csim_addr_t addr, int size, csim_word_t word);
 
@@ -286,7 +277,9 @@ void csim_write_io(csim_board_t *board, csim_addr_t addr, int size, csim_word_t 
 	((csim_core_t *)(i)->inst.comp)->disasm(i, a, b)
 #define csim_core_load(i, p) \
 	((csim_core_t *)(i)->inst.comp)->load(i, p)
-#define csim_core_memory(i) \
-	((csim_core_t *)(i)->inst.comp)->memory(i)
+/*#define csim_core_memory(i) \
+	((csim_core_t *)(i)->inst.comp)->memory(i)*/
+#define csim_byte_at(i, a) \
+	((csim_core_t *)(i)->inst.comp)->get_byte(i, a)
 
 #endif	/* GLISS2_CSIM_H */
