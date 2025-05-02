@@ -1,0 +1,240 @@
+let component = "tc8bit0"
+let arch = "ATmega328P"
+let license = "GPL"
+let io_comp = 1
+let copyright = "University of Toulouse 3"
+let date = "06/04/2025"
+
+type bit = card(1)
+type byte = card(8)
+type word = card(16)
+
+let frequence = 16000000 // en µs (16 MHz)
+
+// -------------------------------------------------------
+// ----- Déclaration des registres internes
+// -------------------------------------------------------
+
+// Stockage du délai
+reg DELAY [1, word]
+    label = "Delay Register"
+    intern = 1
+    offset = 0x50
+    init = 1000000
+
+// Stockage du prescaler calculé
+reg PRESCALER [1, word]
+    label = "Prescaler Value Storage"
+    intern = 1
+    offset = 0x51
+    init = 1
+
+// Stockage de la direction de la rampe
+reg RAMP [1, bit]
+    label = "Ramp Direction (Up/Down)"
+    offset = 0x52
+    init = 1      // 1 = montée au début
+
+
+// -------------------------------------------------------
+// ----- Déclaration des registres
+// -------------------------------------------------------
+
+reg TCNT0 [1, byte]
+    label = "Timer/Counter Register"
+    offset = 0x46
+    init = 0x00
+
+
+reg TCCR0B [1, byte]
+    // FOC0A FOC0B - - WGM02 CS02 CS01 CS00
+    label = "Timer/Counter Control Register B"
+    offset = 0x45
+    init = 0x00
+    on_write = {
+        switch (TCCR0B<2 .. 0>) {           // CS02, CS01, CS00
+            case 0 : PRESCALER = 0;
+            case 1 : PRESCALER = 1;
+            case 2 : PRESCALER = 8;
+            case 3 : PRESCALER = 64;
+            case 4 : PRESCALER = 256;
+            case 5 : PRESCALER = 1024;
+            case 6 : PRESCALER = 4;
+            case 7 : PRESCALER = 16;
+            default : PRESCALER = 1;     // Valeur sûre
+        };
+
+        // Calcul du DELAY en fonction du PRESCALER
+        if PRESCALER == 0 then
+            DELAY = 1; // Timer stoppé
+        else
+            DELAY = (PRESCALER * 1000000) / frequence;
+        endif; 
+    }
+
+reg OCR0A [1, byte]
+    label = "Output Compare Register A"
+    offset = 0x47
+    init = 0x00
+
+reg OCR0B [1, byte]
+    label = "Output Compare Register B"
+    offset = 0x48
+    init = 0x00
+
+reg TIFR0 [1, byte]
+    // - - - - - OCF0B OCF0A TOV0
+    label = "Timer/Counter Interrupt Flag Register"
+    offset = 0x35
+    init = 0x00
+
+reg TCCR0A [1, byte]
+    // COM0A1 COM0A0 COM0B1 COM0B0 - - WGM01 WGM00
+    label = "Timer/Counter Control Register A"
+    offset = 0x44
+    init = 0x00 // Configuration pour mode normal (WGM02:0 = 000)
+    on_write = {
+        switch(TCCR0A<1 .. 0>) {
+            case 0  : schedule normal_mod  in DELAY;   // Mode normal
+            case 1  : schedule pwm_mod     in DELAY;   // Mode PWM
+            case 2  : schedule ctc_mod     in DELAY;   // Mode CTC
+            case 3  : schedule fast_mod    in DELAY;   // Mode Fast PWM         
+        };
+    }
+
+reg TIMSK0 [1, byte]
+    // - - - - - OCIE0B OCIE0A TOIE0
+    label = "Timer/Counter Interrupt Mask Register"
+    offset = 0x6E
+    init = 0x01 // Activation de l'interruption de débordement (TOIE0)
+
+// Permet de visualiser l'état des ports
+reg RAMP_STATE [1, byte]
+    label = "Ramp Outputs State (OC0B:OC0A)"
+    offset = 0x60
+    init = 0x03 // 0b11 => OC0B=1, OC0A=1 au départ (état "haut")
+
+
+
+
+// -------------------------------------------------------
+// ----- Déclaration des ports
+// -------------------------------------------------------
+
+port OC0A (1, bit)
+    init = 0
+    label = "Output Compare Pin A"
+
+port OC0B (1, bit)
+    label = "Output Compare Pin B"
+
+// -------------------------------------------------------
+// ----- Comportement du timer
+// -------------------------------------------------------
+
+event todo_mod
+    // A supprimer
+    on_trigger = {
+        TIFR0 = TIFR0 | 0x02;
+    }
+
+event normal_mod 
+    on_trigger = {
+        // Si TCNT0 atteint 255, on active le flag TOV0 dans TIFR0
+        if TCNT0 == 0xFF then
+            TIFR0 = TIFR0 | 0x01;   // Met à 1 le bit TOV0 (flag de débordement)
+            TCNT0 = 0x00;           // Réinitialise le compteur
+
+            // Si la rampe est en montée, on met OC0A à 1
+            if RAMP == 1 then
+                OC0A = 1; // Mettre OC0A à 1 (montée)
+                RAMP_STATE<0 .. 0> = 1;
+            else
+                OC0A = 0; // Mettre OC0A à 0 (descente)
+                RAMP_STATE<0 .. 0> = 0;
+            endif;
+        else
+            TCNT0 = TCNT0 + 0x01;   // Incrémente le compteur
+        endif;
+
+        schedule normal_mod in DELAY;
+    }
+
+event pwm_mod 
+    on_trigger = {
+        if RAMP == 1 then
+            TCNT0 = TCNT0 + 0x01;
+            if TCNT0 == OCR0A then
+                TIFR0<1 .. 1> = 1;
+                OC0A = 0; // Baisser la sortie OC0A
+                RAMP_STATE<0 .. 0> = 0;
+            endif;
+            if TCNT0 == 0xFF then
+                RAMP = 0;
+                OC0B = 1;
+                RAMP_STATE<1 .. 1> = 1;
+            endif;
+        else
+            TCNT0 = TCNT0 - 0x01;
+            if TCNT0 == OCR0B then
+                TIFR0<2 .. 2> = 1;
+                OC0B = 0; // Baisser la sortie OC0B
+                RAMP_STATE<1 .. 1> = 0;
+            endif;
+            if TCNT0 == 0x00 then
+                RAMP = 1;
+                OC0A = 1; // Remonter la sortie OC0A
+                OC0B = 1; // Remonter la sortie OC0B
+                RAMP_STATE<1 .. 0> = 0b11;
+            endif;
+        endif;
+
+        schedule pwm_mod in DELAY;
+    }
+
+
+event ctc_mod
+    on_trigger = {
+        // Si TCNT0 atteint OCR0A, on active le flag OCF0A dans TIFR0
+        if TCNT0 == OCR0A then
+            TIFR0 = TIFR0 | 0x02;   // Mettre à 1 le flag OCF0A
+            TCNT0 = 0x00;           // Remettre le compteur à 0
+
+            // Mettre OC0A à 1 quand on atteint OCR0A
+            OC0A = 1;               // Mettre OC0A à 1
+            RAMP_STATE<0 .. 0> = 1; // Mettre à jour l'état de OC0A
+        else
+            TCNT0 = TCNT0 + 0x01;   // Sinon, incrémenter
+        endif;
+
+        schedule ctc_mod in DELAY;
+    }
+
+event fast_mod 
+    on_trigger = {
+        TCNT0 = TCNT0 + 0x01;
+
+        // Si TCNT0 atteint OCR0A, on baisse OC0A
+        if TCNT0 == OCR0A then
+            TIFR0<1 .. 1> = 1;
+            OC0A = 0; // Baisser OC0A
+            RAMP_STATE<0 .. 0> = 0; // Mettre OC0A à 0 dans RAMP_STATE
+        endif;
+
+        // Si TCNT0 atteint OCR0B, on baisse OC0B
+        if TCNT0 == OCR0B then
+            TIFR0<2 .. 2> = 1;
+            OC0B = 0; // Baisser OC0B
+            RAMP_STATE<1 .. 1> = 0; // Mettre OC0B à 0 dans RAMP_STATE
+        endif;
+
+        // Si TCNT0 atteint 0xFF (fin de cycle), réinitialiser
+        if TCNT0 == 0xFF then
+            TCNT0 = 0x00;
+            OC0A = 1; // Remettre OC0A à 1
+            OC0B = 1; // Remettre OC0B à 1
+            RAMP_STATE<1 .. 0> = 0b11; // Mettre OC0A et OC0B à 1 dans RAMP_STATE
+        endif;
+
+        schedule fast_mod in DELAY;
+    }

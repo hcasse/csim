@@ -1,0 +1,12 @@
+name: test_tc16bit1
+components:
+  CORE:
+    type: arm
+  LED:
+    type: led
+    base: 0xA0000000
+  
+  TC16BIT1:
+    type: tc16bit1
+    base: 0xFF201000
+

@@ -1,0 +1,37 @@
+let component = "portc"
+let arch = "ATmega328P"
+let io_comp = 1
+let license = "GPL"
+let copyright = "University of Toulouse 3"
+let date = "18/04/2025"
+
+type bit = card(1)
+type byte = card(8)
+
+reg DDRC [1, byte] 
+    // – DDC6 DDC5 DDC4 DDC3 DDC2 DDC1 DDC0
+    label = "Port C Data Direction Register"
+    offset = 0x27
+
+reg PORTC [1, byte]
+    // – PORTC6 PORTC5 PORTC4 PORTC3 PORTC2 PORTC1 PORTC0
+    label = "Port C Data Register"
+    offset = 0x28  // Adresse du registre PORTC 
+
+
+port PIN(8, bit)
+    // – PINC6 PINC5 PINC4 PINC3 PINC2 PINC1 PINC0
+    label = "Port C Input Pins Address"
+    init = 0
+    on_update = {
+        for i in 0 .. 6 do
+            if DDRC<i..i> == 1 then
+                PIN[i] = PORTC<i..i>;
+            endif;
+        enddo;
+    }
+    on_input = {
+        if DDRC<__INDEX..__INDEX> == 0 then
+            PORTC<__INDEX..__INDEX> = PIN[__INDEX];
+        endif;
+    }

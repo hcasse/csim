@@ -1,0 +1,117 @@
+let component = "ADConverter"
+let arch = "ATmega328P"
+let io_comp = 1
+let license = "GPL"
+let copyright = "University of Toulouse 3"
+let date = "18/01/2025"
+
+
+
+
+// ************ Type declarations start ************
+
+let REGS = 1
+
+// 8-bit type for registers
+type byte = int(8)
+
+// Register selection type
+type nbieme = card(4)
+
+// Define control bits for ADCSRA
+//type adcsra_bits = record {
+    //ADPS : int(3),     // ADC Prescaler Select Bits
+    //ADIE : bit,        // ADC Interrupt Enable
+    //ADIF : bit,        // ADC Interrupt Flag
+    //ADATE : bit,       // ADC Auto Trigger Enable
+    //ADSC : bit,        // ADC Start Conversion
+    //ADEN : bit         // ADC Enable
+//}
+
+// ************ Type declarations end ************
+
+
+reg ADMUX[REGS, byte]
+	// REFS1 REFS0 ADLAR – MUX3 MUX2 MUX1 MUX0
+	Label = "ADC Multiplexer Selection Register"
+	offset = 0x7C
+	init = {0x00}
+	on_write = {
+	    // Mise à jour du canal ou de la référence de tension
+        // Le changement prend effet uniquement à la fin de la conversion actuelle
+        let data = _EXPRESSION_;
+        ADMUX = data;
+    }
+	on_read = {
+        // Renvoie l'état actuel du registre ADMUX
+        ADMUX;
+    }
+
+reg ADCSRA[REGS, byte]
+	// ADEN ADSC ADATE ADIF ADIE ADPS2 ADPS1 ADPS0
+	Label = "ADC Control and Status Register A"
+	offset = 0x7A
+	init = {0x00}
+	on_write = {
+        let data = _EXPRESSION_;
+        // Si ADSC est à 1, démarrer la conversion
+        if (data & (1 << 6)) then
+            // Démarrage de la conversion ADC
+            START_ADC_CONVERSION();
+        endif;
+        ADCSRA = data;
+    }
+	on_read = {
+        // Renvoie l'état actuel du registre ADCSRA
+        ADCSRA;
+    }
+
+reg ADCSRB[REGS, byte]
+	// – ACME – – – ADTS2 ADTS1 ADTS0
+	Label = "ADC Control and Status Register B"
+	offset = 0x7B
+	init = {0x00}
+	on_write = {
+        let data = _EXPRESSION_;
+        // Mise à jour de la source de déclenchement automatique
+        ADCSRB = data;
+    }
+	on_read = {
+        // Renvoie l'état actuel du registre ADCSRB
+        ADCSRB;
+    }
+
+reg ADCH[REGS, byte]
+	Label = "ADC Data Register High Byte"
+	offset = 0x79
+	init = {0x00}
+	on_write = { }
+	on_read = {
+        // Lecture de la partie haute du résultat de conversion
+        ADCH;
+    }
+
+reg ADCL[REGS, byte]
+    Label = "ADC Data Register Low Byte"
+    offset = 0x78
+    init = {0x00}
+    on_write = { }
+    on_read = {
+        // Lecture de la partie basse du résultat de conversion
+        ADCL;
+    }
+
+reg DIDR0[REGS, byte]
+	// – – ADC5D ADC4D ADC3D ADC2D ADC1D ADC0D
+	Label = "Digital Input Disable Register 0"
+	offset = 0x7E
+	init = {0x00}
+	on_write = {
+        let data = _EXPRESSION_;
+        // Mise à jour du statut des entrées numériques désactivées
+        DIDR0 = data;
+    }
+	on_read = {
+        // Renvoie l'état actuel du registre DIDR0
+        DIDR0;
+    }

@@ -4,7 +4,7 @@
 YAML=$(PWD)/easy-yaml
 
 HEADERS=csim.h
-COMPONENTS= seven_seg_controller.c seven_seg_display.c led.c button.c leds10.c leds10.c timer.c
+COMPONENTS= seven_seg_controller.c seven_seg_display.c led.c button.c leds10.c leds10.c timer.c portd.c portb.c portc.c tc8bit0.c tc16bit1.c
 SOURCES=csim.c yaml.c  csim-rt.o arm_core.c loader.c $(COMPONENTS)
 
 CFLAGS=-g3 -Wall -fPIC -I. -DCOMPAT
@@ -18,6 +18,12 @@ ifdef WITH_STM32
 ALL += stm32-all
 CLEAN += stm32-clean
 DISTCLEAN += stm32-distclean
+endif
+
+ifdef WITH_ATMEGA328P
+ALL += atmega328p-all
+CLEAN += atmega328p-clean
+DISTCLEAN += atmega328p-distclean
 endif
 
 # ARMV5T option
@@ -54,7 +60,7 @@ csim.o: csim.h mem.h
 mem.o: mem.h
 test-csim.o: csim.h
 yaml.o: yaml.h
-test2.o: csim.h mem.h yaml.h led.h button.h
+test2.o: csim.h mem.h yaml.h led.h button.h portd.h portb.h portc.h tc8bit0.h
 csim-rt.o: csim-rt.h
 loader.o: csim.h yaml.h
 %.o: $(COMPONENTS)
@@ -83,6 +89,13 @@ stm32-all:
 stm32-clean:
 	cd stm32; make clean
 
+
+# ATMEGA328P rules
+atmega328p-all:
+	cd atmega328p; make all
+
+atmega328p-clean:
+	cd atmega328p; make clean
 
 # python rules
 python:

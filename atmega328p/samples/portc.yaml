@@ -1,0 +1,21 @@
+name: test_portc
+components:
+  CORE:
+    type: arm
+  PORTC:
+    type: portc
+    base: 0
+  LED:
+    type: led
+    base: 0xA0000000
+  BUTTON:
+    type: button
+    base: 0xB0000000
+    key: c
+connect:
+  -
+    from: PORTC.PIN0
+    to: LED.input
+  - 
+    from: PORTC.PIN1
+    to: BUTTON.output

@@ -1,0 +1,21 @@
+name: test_portd
+components:
+  CORE:
+    type: arm
+  PORTD:
+    type: portd
+    base: 0
+  LED:
+    type: led
+    base: 0xA0000000
+  BUTTON:
+    type: button
+    base: 0xB0000000
+    key: c
+connect:
+  -
+    from: PORTD.PIN0
+    to: LED.input
+  - 
+    from: PORTD.PIN1
+    to: BUTTON.output

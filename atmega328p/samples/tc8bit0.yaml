@@ -1,0 +1,10 @@
+name: test_tc8bit0
+components:
+  CORE:
+    type: arm
+  LED:
+    type: led
+    base: 0xA0000000
+  TC8BIT0:
+    type: tc8bit0
+    base: 0xFF202000

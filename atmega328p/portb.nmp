@@ -1,0 +1,39 @@
+let component = "portb"
+let arch = "ATmega328P"
+let io_comp = 1
+let license = "GPL"
+let copyright = "University of Toulouse 3"
+let date = "18/01/2025"
+
+
+type bit = card(1)
+type byte = card(8)
+
+reg PORTB [1, byte]
+    // PORTB7 PORTB6 PORTB5 PORTB4 PORTB3 PORTB2 PORTB1 PORTB0
+    label = "Port B Data Register"
+    offset = 0x25  // Adresse du registre PORTB
+
+reg DDRB [1, byte]
+    // DDB7 DDB6 DDB5 DDB4 DDB3 DDB2 DDB1 DDB0
+    label = "Port B Data Direction Register"
+    offset = 0x24
+
+
+
+port PORTB_PINS (8, bit)
+    label = "Port B Pins"
+    init = 0
+    on_update = {
+	for i in 0 .. 7 do
+		if DDRB<i..i> == 1 then
+			PORTB_PINS[i] = PORTB<i..i>;
+		endif;
+	enddo;
+    }
+    on_input = {
+
+	if DDRB<__INDEX .. __INDEX> == 0 then
+		PORTB<__INDEX .. __INDEX> = PORTB_PINS[__INDEX];
+	endif;
+        }
