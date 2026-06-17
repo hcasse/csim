@@ -44,6 +44,13 @@ else
 SOURCES += mem.c
 endif
 
+
+# Python option
+ifdef WITH_PYTHON
+ALL += with-python
+endif
+
+
 # useful definitions
 OBJECTS=$(SOURCES:.c=.o)
 
@@ -101,11 +108,8 @@ stm32-clean:
 
 
 # python rules
-python:
-ifdef WITH_ORCHID
-	cd python; make install
-endif
-
+with-python:
+	cd python; make
 
 # setup
 GLISS_GIT = https://git.renater.fr/anonscm/git/gliss2/gliss2.git
@@ -149,9 +153,7 @@ git-orchid:
 config: config-force setup
 
 
-config.mk: config-force
-
-config-force:
+config.mk: config.in
 	cp config.in config.mk
 ifdef WITH_ARMV5T
 	echo "WITH_ARMV5T=$(WITH_ARMV5T)" >> config.mk

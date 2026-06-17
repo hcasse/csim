@@ -124,7 +124,6 @@ static unsigned inst_size(csim_core_inst_t *_inst) {
 	return res;
 }
 
-
 static void arm_make_R(csim_inst_t *inst, int num, char *buf, int size) {
 	snprintf(buf, size, "R%d", num);
 }
@@ -149,9 +148,43 @@ static void arm_set_CPSR(csim_inst_t *_inst, int num, csim_word_t val) {
 	inst->state->Ucpsr = val;
 }
 
+static void arm_make_CPSR(csim_inst_t *inst, int num, char *buf, int size) {
+	strcpy(buf, "CPSR");
+}
+
+static void arm_display_R(csim_inst_t *inst_, int num, char *buf, int size) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)inst_;
+	snprintf(buf, size, "%d", inst->state->GPR[num]);
+}
+
+static void arm_display_CPSR(csim_inst_t *inst_, int num, char *buf, int size) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)inst_;
+	snprintf(buf, size, "%08x", inst->state->Ucpsr);
+}
+
+static csim_word_t arm_null_read(csim_inst_t *inst, int num) { return 0; }
+static void arm_null_write(csim_inst_t *inst, int num, csim_word_t val) { }
+
+
 static csim_reg_t arm_regs[] = {
-	{ "R", 0, 4, 16, 1, CSIM_INTERN, CSIM_INT, arm_make_R, NULL, NULL, NULL, arm_get_R, arm_set_R },
-	{ "CPSR", 0, 4, 1, 1, CSIM_INTERN, CSIM_INT, NULL, NULL, NULL, NULL, arm_get_CPSR, arm_set_CPSR }
+	{
+		"R", 0, 4, 16, 1, CSIM_INTERN, CSIM_INT,
+		arm_make_R,
+		arm_display_R,
+		arm_null_read,
+		arm_null_write,
+		arm_get_R,
+		arm_set_R
+	},
+	{
+		"CPSR", 0, 4, 1, 1, CSIM_INTERN, CSIM_INT,
+		arm_make_CPSR,
+		arm_display_CPSR,
+		arm_null_read,
+		arm_null_write,
+		arm_get_CPSR,
+		arm_set_CPSR
+	}
 };
 
 

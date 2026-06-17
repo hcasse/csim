@@ -1,5 +1,7 @@
 """Components of csimui"""
 
+from enum import IntEnum
+
 import csim
 from csimui.util import BoardError
 import yaml
@@ -9,6 +11,13 @@ CSIM_SIMPLE = 1
 CSIM_CORE = 2
 CSIM_IO = 3
 
+class RType(IntEnum):
+	NONE = 0
+	BITS = 1
+	INT = 2
+	ADDR = 3
+	FLOAT32 = 4
+	FLOAT64 = 5
 
 class Register:
 	"""Representation of a register."""
@@ -25,14 +34,14 @@ class Register:
 		self.type = None
 
 	def fill(self):
-		(name, offset, size, count, stride, flags, type) = register_info(self.reg)
+		(name, offset, size, count, stride, flags, type) = csim.register_info(self.reg)
 		self.name = name
 		self.offset = offset
 		self.size = size
 		self.count = count
 		self.stride = stride
 		self.flags = flags
-		self.type = type
+		self.type = RType(type)
 
 	def get_name(self):
 		if self.name is None:
@@ -72,6 +81,10 @@ class Register:
 		"""Set the value of the register."""
 		return csim.set_register_val(self.comp.inst, self.reg, i, x)
 
+	def make_name(self, index):
+		"""Build the name of an instance of the register."""
+		return csim.register_make_name(self.comp.inst, self.reg, index)
+
 
 class Component:
 	"""Represents a simple component."""
@@ -89,10 +102,11 @@ class Component:
 
 	def get_registers(self):
 		"""Get registers of the component. List of Register objects."""
-		if self.registers:
-			(name, type, reg_cnt, port_cnt, size) = csim.component_info(self.comp)
-			self.registers = [ ]
+		if not self.registers:
+			(name, type, version, reg_cnt, port_cnt, size) = csim.component_info(self.comp)
+			self.registers = []
 			for i in range(reg_cnt):
+				reg = csim.get_register(self.comp, i)
 				self.registers.append(Register(self, reg))
 		return self.registers
 
@@ -171,6 +185,8 @@ class Board:
 		try:
 			with open(board_path, "r") as input:
 				desc = yaml.safe_load(input)
+				if desc is None:
+					raise BoardError(f"empty board in {board_path}")
 		except OSError as exn:
 			raise BoardError(str(exn))
 		board_name = util.get(desc, "name", "no name")
@@ -221,6 +237,14 @@ class Board:
 		if bin_path is not None:
 			self.load_bin(bin_path)
 
+	def get_core(self):
+		"""Get the execution core."""
+		return self.core
+
+	def get_components(self):
+		"""Get the components of the core."""
+		return self.components
+
 	def load_bin(self, path):
 		"""Load the binary. Raise BoardError in case of error."""
 		self.bin_path = path
@@ -263,6 +287,21 @@ class Board:
 		return self.core.pc()
 
 	def inst_size(self):
-		"""Get tha size of the current instruction. """
+		"""Get the size of the current instruction. """
 		return self.core.inst_size()
 
+	def get_date(self):
+		"""Get the date of the simulated board."""
+		return csim.get_date(self.board)
+
+	def byte_at(self, addr):
+		"""Get the byte at provided address."""
+		return csim.byte_at(self.board, addr)
+
+	def half_at(self, addr):
+		"""Get the half-word at provided address."""
+		return csim.half_at(self.board, addr)
+
+	def word_at(self, addr):
+		"""Get the word at provided address."""
+		return csim.word_at(self.board, addr)

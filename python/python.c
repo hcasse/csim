@@ -14,7 +14,7 @@
 #define RETURN_ULONG(x)		return Py_BuildValue("K", x)
 #define RETURN_FLOAT(x)		return Py_BuildValue("f", x)
 #define RETURN_DOUBLE(x)	return Py_BuildValue("d", x)
-#define RETURN_STR(x)		return Py_BuildValue("s", x)
+#define RETURN_STR(x)		return PyUnicode_FromString(x)
 
 #define PTR(t, x)		((t *)PyCapsule_GetPointer(x, NULL))
 #define TPTR(t, x)		((t *)PyCapsule_GetPointer(x, #t))
@@ -356,6 +356,20 @@ get_date(PyObject *self, PyObject *args) {
 	RETURN_ULONG(board->date);
 }
 
+static PyObject *
+register_make_name(PyObject *self, PyObject *args) {
+	PyObject *oinst;
+	PyObject *oreg;
+	int index;
+	if(!PyArg_ParseTuple(args, "OOi", &oinst, &oreg, &index))
+		return NULL;
+	csim_reg_t *reg = TPTR(csim_reg_t, oreg);
+	csim_inst_t *inst = TPTR(csim_inst_t, oinst);
+	char buf[256];
+	reg->make_name(inst, index, buf, 256);
+	RETURN_STR(buf);
+}
+
 static PyMethodDef csim_methods[] = {
 	FUN(new_board, "(name, memory) Create a new board."
 		"memory may be None. Return the board."),
@@ -364,7 +378,8 @@ static PyMethodDef csim_methods[] = {
 	FUN(run, "(board, time) Run the board during time cycles"),
 	FUN(load_board, "(path) Load the given executable and build/return the board"),
 	FUN(get_core, "(board) Get the execution core of the board (may return None if there is no core)."),
-	FUN(core_load, "(core instance, path) Load the executable from the path into the board containing the core. "),
+	FUN(core_load, "(core instance, path) Load the executable from the path into the board containing the core."
+			"Returns 0 for success or an error code."),
 	FUN(core_pc, "(core instance) Get the current PC address of the given core instance."),
 	FUN(core_disasm, "(core instance, address) Return the disassembly of the instruction at the given address."),
 	FUN(find_component, "(name) Look for a component by its name. Return component or None."),
@@ -376,7 +391,7 @@ static PyMethodDef csim_methods[] = {
 	FUN(connect, "(instance 1, port 1, instance 2, port 2) Connect the port of instance 1 with the port of instance 2."),
 	FUN(set_log_level, "(board, level) Set the log level (level is an integer as CSIM_NOLOG=0, CSIM_DEBUG=1, etc)."),
 	FUN(set_master_clock, "(board, clock) Set the master clock of the board."),
-	FUN(get_register, "(board, index) Get the register for the given index."),
+	FUN(get_register, "(component, index) Get the register for the given index."),
 	FUN(register_info, "(register) Return register information (name, offset, size, count, stride, flags, type)."),
 	FUN(get_register_val, "(instance, register, index) Get the value of a register."),
 	FUN(set_register_val, "(instance, register, index, value) Set the value of a register."),
@@ -388,6 +403,7 @@ static PyMethodDef csim_methods[] = {
 	FUN(word_at, "(board, address) Get the word in the board at the passed address."),
 	FUN(long_at, "(board, address) Get the long word in the board at the passed address."),
 	FUN(get_date, "(board) Get the date of the board."),
+	FUN(register_make_name, "(component, register, index) Build the name for register at index."),
 	{NULL, NULL, 0, NULL}
 };
 

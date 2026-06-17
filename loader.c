@@ -264,7 +264,8 @@ csim_board_t *csim_load_board(const char *path, csim_memory_t *mem) {
 	if(num == 0)
 		return loader.board;
 	else {
-		csim_delete_board(loader.board);
+		if(loader.board)
+			csim_delete_board(loader.board);
 		return NULL;
 	}
 }
