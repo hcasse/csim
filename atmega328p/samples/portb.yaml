@@ -1,0 +1,21 @@
+name: test_portb
+components:
+  CORE:
+    type: arm
+  PORTB:
+    type: portb
+    base: 0
+  LED:
+    type: led
+    base: 0xA0000000
+  BUTTON:
+    type: button
+    base: 0xB0000000
+    key: c
+connect:
+  -
+    from: PORTB.PORTB_PINS0
+    to: LED.input
+  - 
+    from: PORTB.PORTB_PINS1
+    to: BUTTON.output

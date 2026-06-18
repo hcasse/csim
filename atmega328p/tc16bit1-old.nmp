@@ -1,0 +1,224 @@
+let component = "tc16bit1"
+let arch = "ATmega328P"
+let license = "GPL"
+let io_comp = 1
+let copyright = "University of Toulouse 3"
+let date = "27/04/2025"
+
+type bit = card(1)
+type byte = card(8)
+
+
+reg TCCR1A [1, byte] 
+    //COM1A1 COM1A0 COM1B1 COM1B0 - - WGM11 WGM10
+    label = "Timer/Counter Control Register A"
+    offset = 0x80
+    init = 0
+
+
+reg TCCR1B [1, byte] 
+    // ICNC1 ICES1 – WGM13 WGM12 CS12 CS11 CS10
+    label = "Timer/Counter Control Register B"
+    offset = 0x81
+    init = 0
+
+reg TCCR1C [1, byte] 
+    // FOC1A FOC1B
+    label = "Timer/Counter Control Register C"
+    offset = 0x82
+    init = 0
+
+reg TCNT1H [1, byte] 
+    label = "Timer/Counter "
+    offset = 0x85
+    init = 0
+
+reg TCNT1L [1, byte] 
+    label = "Timer/Counter "
+    offset = 0x84
+    init = 0
+
+
+reg OCR1BH [1, byte] 
+    label = "Output Compare Register B High"
+    offset = 0x8B
+    init = 0
+
+reg OCR1BL [1, byte] 
+    label = "Output Compare Register B Low"
+    offset = 0x8A
+    init = 0
+
+reg ICR1H [1, byte] 
+    label = "Input Capture Register High"
+    offset = 0x87
+    init = 0
+
+reg ICR1L [1, byte] 
+    label = "Input Capture Register Low"
+    offset = 0x86
+    init = 0
+
+
+
+reg TIMSK1 [1, byte]
+    // - - ICIE1 - - OCIE1B OCIE1A TOIE1
+    label = "Timer/Counter Interrupt Mask Register"
+    offset = 0x6F
+    read_only = 1
+
+reg TIFR1 [1, byte]
+    // - - ICF1 - - OCF1B OCF1A TOV1
+    label = "Timer/Counter Interrupt Flag Register"
+    offset = 0x36
+    init = 0
+
+// OUTPUT REGISTERS 
+reg OCR1AH [1, byte] 
+    label = "Output Compare Register A High"
+    offset = 0x89
+    init = 0
+
+reg OCR1AL [1, byte] 
+    label = "Output Compare Register A Low"
+    offset = 0x88
+    init = 0
+
+
+reg CLK [1,bit]
+    label = "Software Clock"
+    intern = 1
+    offset = 0x01
+    init = 0
+
+reg OC1A [1,bit]
+    label = "Output Compare A"
+    offset = 0x03
+    output = 1
+    init = 0
+
+reg OC1B [1,bit]
+    label = "Output Compare A"
+    offset = 0x04
+    output = 1
+    init = 0
+
+reg count_dir [1, bit]
+    label = "Timer Count Direction"
+    intern = 1
+    offset = 0x05
+    init = 0 
+
+
+
+event Update
+    on_trigger = {
+        let wgm = (TCCR1B <4..3> << 2 | TCCR1A <1..0>);
+        let cs1 = TCCR1B <2..0>;
+        let prescaler =0 ;
+        let OCIE1A = TIMSK1 <1..1>;
+        if OCIE1A == 1 then cancel Update ; endif;
+        switch (cs1) {
+            case 0b001 : prescaler = 1;
+            case 0b010 : prescaler = 8;
+            case 0b011 : prescaler = 64;
+            case 0b100 : prescaler = 256;
+            case 0b101 : prescaler = 1024;
+//            default : cancel Update;
+        };
+
+        let top = 0xFFFF;
+        let ocr1a = (OCR1AH << 8) | OCR1AL;
+        let ocr1b = (OCR1BH << 8) | OCR1BL;
+        let com1a = TCCR1A <7..6>;
+        let icr1 = (ICR1H<< 8) | ICR1L;
+
+        switch (wgm) {
+            case 0b0001 || 0b0101: // Pwm  8-bit
+                top = 0x00FF;
+            case 0b0010 || 0b0110 : // Pwm 9-bit
+                top = 0x01FF;
+            case 0b0011 || 0b0111: // Pwm 10-bit
+                top = 0x03FF;
+            case 0b1010 || 0b1110: // Pwm with ICR1
+                top = icr1;
+            case 0b1011 || 0b1111: // Pwm with OCR1A
+                top = ocr1a;
+        };
+        switch (wgm) {
+            //MODE NORMAL
+            case 0b0000 : 
+                let tcnt1 = (TCNT1H << 8) | TCNT1L;
+                if tcnt1 == 0xFFFF then 
+                    tcnt1 = 0;
+                    TCNT1H = 0x00;
+                    TCNT1L = 0x00;
+                    TIFR1<0..0>=1; // overflow
+                else
+                    tcnt1 = tcnt1 + 1;
+                    TCNT1H = (tcnt1 >> 8);
+                    TCNT1L = (tcnt1 & 0xFF);
+                endif;
+
+            // MODE CTC ocr1a
+            case 0b0100 :
+                let tcnt1 = (TCNT1H << 8) | TCNT1L;
+
+                switch (com1a) {
+                        case 0b01: OC1A = ~OC1A; // toggle
+                        case 0b10: OC1A = 0;     // clear
+                        case 0b11: OC1A = 1;     // set
+                    };
+                if tcnt1 == ocr1a then
+                    tcnt1 =0;
+                    TIFR1<0..0>=1; // overflow
+                else
+                    tcnt1 = tcnt1 +1 ;
+
+                endif;
+                TCNT1H = (tcnt1 >> 8);
+                TCNT1L = (tcnt1 & 0xFF);
+            
+            // MODE CTC ICR1
+            case 0b1100 :
+                let tcnt1 = (TCNT1H << 8) | TCNT1L;
+                if tcnt1 == icr1 then
+                    tcnt1 =0;
+                    TIFR1<0..0>=1; // overflow
+                else
+                    tcnt1 = tcnt1 +1 ;
+                endif;
+                TCNT1H = (tcnt1 >> 8);
+                TCNT1L = (tcnt1 & 0xFF);
+            case 
+
+            // FAST PWM ICR1
+            case 0b1110 :
+                let tcnt1 = (TCNT1H << 8) | TCNT1L;
+                if tcnt0 == top then
+                    TIFR1<0..0>=1; 
+                    tcnt1 = 0;
+
+
+            
+//            default :
+//                return;
+        };
+        schedule Update in prescaler;
+
+    }
+
+
+
+// -------------------------------------------------------
+// ----- Lancement automatique au reset
+// -------------------------------------------------------
+
+event Reset
+    on_update = {
+        schedule Update in 1;
+    }
+
+// -------------------------------------------------------
+// ----- Reset du signal OC0A
+// -------------------------------------------------------

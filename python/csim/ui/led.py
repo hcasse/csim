@@ -1,13 +1,14 @@
 """LED component implementation."""
 
 import os.path
+
+import csim
+from csim.ui import load_svg
+import libcsim
+
 from orchid import *
 from orchid.svg import Canvas, Content
 from orchid.util import Buffer
-from csimui import components
-from csimui.util import *
-import csim
-
 
 class LED(Content):
 	IMAGE = None
@@ -44,21 +45,21 @@ class LED(Content):
 			self.off()
 		else:
 			self.on()
-	
 
-class Component(components.IOComponent):
+
+class Component(csim.IOComponent):
 
 	def __init__(self, board, name, comp, inst, atts):
-		components.IOComponent.__init__(self, board, name, comp, inst, atts)
-		self.x = int(get(atts, "x", 0))
-		self.y = int(get(atts, "y", 0))
-		self.color = get(atts, "color", "#FF0000")
+		csim.IOComponent.__init__(self, board, name, comp, inst, atts)
+		self.x = int(csim.get(atts, "x", 0))
+		self.y = int(csim.get(atts, "y", 0))
+		self.color = csim.get(atts, "color", "#FF0000")
 
 	def install(self, canvas):
 		self.shape = LED(self.x, self.y, self.color)
 		canvas.record(self.shape)
 
 	def update(self):
-		res = csim.get_state(self.inst, 1)
+		res = libcsim.get_state(self.inst, 1)
 		if res[0] != self.shape.state:
 			self.shape.invert()

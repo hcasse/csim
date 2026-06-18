@@ -1,0 +1,10 @@
+name: test_oscillator
+components:
+  CORE:
+    type: arm
+  LED:
+    type: led
+    base: 0xA0000000
+  OSCILLATOR:
+    type: oscillator
+    base: 0xFF203000

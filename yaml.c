@@ -105,10 +105,16 @@ int yaml_parse(yaml_handler_t *handler, const char *path, void *data) {
 				char *q = strchr(buf, ':');
 				if(q == NULL)
 					q = p + len - 2;
-				else {
-					if(*(q + 1) != ' ')
-						return num;
+				else if(*(q + 1) == '\0') {
 					*q = '\0';
+					q -=2;
+				}
+				else if(*(q + 1) == ' ')
+					*q = '\0';
+				else {
+					sprintf(buf, "%d: space after ':' required!", num);
+					handler->on_error(buf, data);
+					return num;
 				}
 				next = handler->on_key(p, q+2, data);
 			}

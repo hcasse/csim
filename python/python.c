@@ -22,15 +22,9 @@
 static PyObject *
 new_board(PyObject *self, PyObject *args) {
 	const char *name;
-	PyObject *omem;
-	if(!PyArg_ParseTuple(args, "sO", &name, &omem))
+	if(!PyArg_ParseTuple(args, "s", &name))
 		return NULL;
-	csim_memory_t *mem;
-	if(omem == Py_None)
-		mem = NULL;
-	else
-		mem = TPTR(csim_memory_t, omem);
-	csim_board_t *board = csim_new_board(name, mem);
+	csim_board_t *board = csim_new_board(strdup(name));
 	board->level = CSIM_WARN;
 	RETURN_TPTR(csim_board_t, board);
 }
@@ -68,7 +62,7 @@ load_board(PyObject *self, PyObject *args) {
 	const char *path;
 	if(!PyArg_ParseTuple(args, "s", &path))
 		return NULL;
-	csim_board_t *board = csim_load_board(path, NULL);
+	csim_board_t *board = csim_load_board(path);
 	if(board == NULL)
 		RETURN_NONE;
 	else
@@ -416,6 +410,6 @@ static struct PyModuleDef csim_module = {
 };
 
 PyMODINIT_FUNC
-PyInit_csim(void) {
+PyInit_libcsim(void) {
     return PyModule_Create(&csim_module);
 }

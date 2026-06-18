@@ -18,8 +18,8 @@
  * along with GLISS2; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#ifndef GLISS_CSIM_MEM_H
-#define GLISS_CSIM_MEM_H
+#ifndef CSIM_MEM_H
+#define CSIM_MEM_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -90,7 +90,7 @@ typedef enum {
 
 #else	/* NO_MEM */
 
-		typedef struct csim_memory_t csim_memory_t;
+	typedef struct csim_memory_t csim_memory_t;
 
 	/* creation function */
 	csim_memory_t *csim_mem_new();
@@ -136,5 +136,5 @@ typedef enum {
 }
 #endif
 
-#endif /* GLISS_CSIM_MEM_H */
+#endif /* CSIM_MEM_H */
 

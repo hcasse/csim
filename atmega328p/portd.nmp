@@ -1,0 +1,37 @@
+let component = "portd"
+let arch = "ATmega328P"
+let io_comp = 1
+let license = "GPL"
+let copyright = "University of Toulouse 3"
+let date = "18/01/2025"
+
+type bit = card(1)
+type byte = card(8)
+
+reg DDRD [1, byte] 
+    // DDD7 DDD6 DDD5 DDD4 DDD3 DDD2 DDD1 DDD0 
+    label = "Port D Data Direction Register"
+    offset = 0x2A 
+
+reg PORTD [1, byte]
+    // PORTD7 PORTD6 PORTD5 PORTD4 PORTD3 PORTD2 PORTD1 PORTD0 
+    label = "Port D Data Register"
+    offset = 0x2B  // Adresse du registre PORTD 
+
+
+port PIN(8, bit)
+    // PIND7 PIND6 PIND5 PIND4 PIND3 PIND2 PIND1 PIND0
+    label = "Port D Input Pins Address"
+    init = 0
+    on_update = {
+        for i in 0 .. 7 do
+            if DDRD<i..i> == 1 then
+                PIN[i] = PORTD<i..i>;
+            endif;
+        enddo;
+    }
+    on_input = {
+        if DDRD<__INDEX..__INDEX> == 0 then
+            PORTD<__INDEX..__INDEX> = PIN[__INDEX];
+        endif;
+    }

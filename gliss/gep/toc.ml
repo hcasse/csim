@@ -504,7 +504,7 @@ let declare_temps info =
 				name
 		)
 		info.temps;
-		
+
 	(* declare global, local and for variables *)
 	List.iter
 		(fun (name, (cnt, typ)) ->
@@ -778,7 +778,7 @@ let rec seq_list list =
 	@param stats		List of statements to extend.
 	@return				(required statements, unaliased expression) *)
 let rec unalias_ref info expr stats =
-	
+
 	let unalias stats name idx typ unalias_mem =
 		match Irg.get_symbol name with
 		(* IRg.MEM added makes everything goes badly (with ppc2 and arm at least) *)
@@ -797,7 +797,7 @@ let rec unalias_ref info expr stats =
 			prepare_expr info stats e
 		| _ ->
 			(stats, expr) in
-	
+
 	match expr with
 	| Irg.REF (_, name) ->
 		(* if mem ref, leave it this way, it surely is a parameter for a canonical *)
@@ -938,7 +938,7 @@ let unalias_set info stats name idx ub lb expr =
 		if (il = 1 && ubp == Irg.NONE) || il > 1 then
 			if il = 1 then seq stats (set_item i expr) else
 			let name = new_temp info tt in
-			seq (seq stats (sett tt name expr)) (set_concat (il - 1) (Sem.get_type_length t) (Irg.REF (tt, name))) 
+			seq (seq stats (sett tt name expr)) (set_concat (il - 1) (Sem.get_type_length t) (Irg.REF (tt, name)))
 		else
 			if il = 1 then seq stats (set_full i ubp lbp expr) else
 			let name = new_temp info tt in
@@ -957,14 +957,14 @@ let unalias_set info stats name idx ub lb expr =
 	| Irg.PORT (_, cnt, _, _) ->
 		seq stats (Irg.CANON_STAT(
 				name ^ "_SET",
-				if cnt > 1 then [i; expr] else [expr] 
+				if cnt > 1 then [i; expr] else [expr]
 			))
 	(* this should happen only when using gliss1 predecode *)
 	| Irg.PARAM (_, typ) ->
 		(match typ with
 		| Irg.TYPE_EXPR(tt) -> process tt
 		| _ -> failwith "OUPS!\n")
-	| _ -> 
+	| _ ->
 		Irg.print_spec (Irg.get_symbol name);
 		failwith "unalias_set"
 
@@ -1040,7 +1040,7 @@ let rec prepare_stat info stat =
 	| Irg.LINE (file, line, stat) ->
 		handle_error file line
 			(fun _ -> Irg.LINE (file, line, prepare_stat info stat))
-		
+
 	| Irg.LOCAL (v, o, t, i) ->
 		if not (is_supported t)
 		then pre_error (Irg.outputln [Irg.PTEXT "unsupported type "; Irg.PTYPE t; Irg.PTEXT " for local variable ";  Irg.PTEXT o])
@@ -1049,7 +1049,7 @@ let rec prepare_stat info stat =
 			let (stats, expr) = prepare_expr info Irg.NOP i in
 			prepare_set stats (Irg.LOC_REF (t, v, Irg.NONE, Irg.NONE, Irg.NONE)) expr
 		end
-		
+
 	| Irg.FOR (v, uv, t, l, u, b) ->
 		if not (is_supported t)
 		then pre_error (Irg.outputln [Irg.PTEXT "unsupported type "; Irg.PTYPE t; Irg.PTEXT " for local variable ";  Irg.PTEXT v])
@@ -1389,7 +1389,7 @@ and gen_cast info typ expr prfx =
 		output_string info.out "))" in
 
 	let asis _ = gen_expr info expr prfx in
-	
+
 	let equal_zero _ =
 		Printf.fprintf info.out "(0 != (";
 		asis ();
@@ -1409,7 +1409,7 @@ and gen_cast info typ expr prfx =
 	| Irg.BOOL, Irg.CARD n when n <= 8 -> asis ()
 	| Irg.BOOL, Irg.INT n when n <= 8 -> asis ()
 	| Irg.CARD _, Irg.BOOL
-	| Irg.INT _, Irg.BOOL 
+	| Irg.INT _, Irg.BOOL
 		-> asis ()
 	| Irg.INT n, _
 	| Irg.CARD n, _
@@ -1537,7 +1537,7 @@ let rec gen_stat info stat =
 	(* let loc_to_expr t id idx =
 		if idx = Irg.NONE then Irg.REF id
 		else Irg.ITEMOF(t, id, idx) in *)
-	
+
 	match stat with
 	| Irg.NOP -> ()
 
@@ -1582,7 +1582,7 @@ let rec gen_stat info stat =
 				info.proc
 				(cstring msg))
 
-	| Irg.INTERRUPT c -> line ( fun _ -> Printf.fprintf 
+	| Irg.INTERRUPT c -> line ( fun _ -> Printf.fprintf
 			info.out "((csim_core_t *) inst -> board -> cores -> inst.comp) -> interrupt(inst -> board -> cores,%d);;" (Sem.to_int(c)))
 
 	| Irg.IF_STAT (cond, tpart, epart) ->
@@ -1640,7 +1640,7 @@ let rec gen_stat info stat =
 
 	| Irg.LOCAL _ ->
 		()
-		
+
 	| Irg.FOR (v, uv, t, l, u, b) ->
 		let rev = (Sem.eval_binop Irg.LT (t, l) (t, u)) = Sem.false_const in
 		preline (fun _ ->
@@ -1685,13 +1685,13 @@ and set_field info typ id idx lo up expr =
 		| Irg.INT(n) ->
 			((type_size typ) - 1) = (Int32.to_int up)	(* i: int(n); i<n-1..0> = v *)
 			&& (n <> (ctype_size (convert_type typ)))	(* n <> ctype(int(n)) *)
-		| _ -> false in 
+		| _ -> false in
 
 	try
 		let up, lo = if info.bito = UPPERMOST then lo, up else up, lo in
 		let uc = Sem.to_int32 (Sem.eval_const up) in
 		let lc = Sem.to_int32 (Sem.eval_const lo) in
-		let inv, up, lo, higher = 
+		let inv, up, lo, higher =
 			if (Int32.compare uc lc) >= 0 then "", up, lo, uc
 			else "_inverted", lo, up, lc in
 		let e = transform_expr inv up lo false 0 in
@@ -1772,7 +1772,7 @@ let find_recursives info name =
 			with Failure _ -> begin
 				failwith "Toc.find_recursives"
 			end in
-	
+
 	info.recs <- look_attr name [] []
 
 
@@ -1822,7 +1822,7 @@ let gen_pc_increment info =
 	@param name		Name of the attribute. *)
 let gen_action info name =
 	info.indent <- 1;
-	
+
 	(* prepare statements *)
 	find_recursives info name;
 	prepare_call info name;

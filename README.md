@@ -7,12 +7,16 @@ Small program demonstrating the use of CSim with ARMv5T simulator.
 The setup will download, configure and build required dependencies:
 
 ```sh
+$ make config
+```
+
+You can configure CSIM by editing `config.mk` an then perform the setup:
+
+```sh
 $ make setup
 ```
 
-You can configure CSIM by editing `config.mk` an then re-launch compilation that will take into account the new configuration.
-
-Then you can compile CSIM:
+It will download all require modules. Then you can compile CSIM:
 
 ```sh
 $ make
@@ -52,7 +56,8 @@ Where:
 To run it, move into `python` directory and type:
 
 ```sh
-make run NUM=number
+$ cd python
+$ make run NUM=number
 ```
 
 With _number_ one of the number of samples in directory `samples`.

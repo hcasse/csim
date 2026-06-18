@@ -1,0 +1,132 @@
+let component = "tc8bit2"
+let arch = "ATmega328P"
+let license = "GPL"
+let io_comp = 1
+let copyright = "University of Toulouse 3"
+let date = "19/01/2025"
+
+type bit = card(1)
+type byte = card(8)
+type nb = card(10)
+
+
+reg nombreDeClk[1, nb]
+    label = "logical counter"
+    offset = 0x01
+    init = 0
+    
+    
+    
+reg TCNT2 [1, byte]
+    label = "Timer/Counter Register"
+    offset = 0xB2
+    init = 0
+    on_write = {
+        // Code pour modifier la valeur du compteur 
+    }
+
+    on_read = {
+        // Code pour lire la valeur du compteur 
+    }
+
+
+
+
+
+reg TCCR2A [1, byte] 
+    // COM2A1 COM2A0 COM2B1 COM2B0 - - WGM21 WGM20 
+    label = "Timer/Counter Control Register A"
+    offset = 0xB0
+    init = 0
+    on_write = { schedule clk in 5; }
+
+
+reg TCCR2B [1, byte] 
+    // FOC2A FOC2B - - WGM22 CS22 CS21 CS20 
+    label = "Timer/Counter Control Register B"
+    offset = 0xB1
+    init = 0
+    on_write = { schedule clk in 5; }
+
+
+reg OCR2A [1, byte] 
+    label = "Output Compare Register A"
+    offset = 0xB3
+    init = 0
+
+reg OCR2B [1, byte] 
+    label = "Output Compare Register B"
+    offset = 0xB4
+    init = 0
+
+reg TIFR2 [1, byte]
+    // - - - - - OCF2B OCF2A TOV2 
+    label = "Timer/Counter Interrupt Flag Register"
+    offset = 0x37
+    read_only = 1
+
+reg TIMSK2 [1, byte]
+    // - - - - - OCIE2B OCIE2A TOIE2
+    label = "Timer/Counter Interrupt Mask Register"
+    offset = 0x70
+    init = 0
+
+
+
+port OC2A (1, byte)
+    label = "Output Compare Pin A"
+    on_update = { // Code pour gérer la mise à jour de la broche de comparaison de sortie A
+    }
+
+port OC2B (1, byte)
+    label = "Output Compare Pin B"
+    on_update = { // Code pour gérer la mise à jour de la broche de comparaison de sortie B
+    }
+
+event clk
+    on_update = {}
+    on_trigger = {
+        if TCNT2<0..0> == 255 then
+            TCNT2<0..0> = 0;
+            else
+                TCNT2<0..0> = TCNT2<0..0> + 1;
+            endif;
+
+        if TCCR2B<2..2>==0 && TCCR2B<1..1>==0 && TCCR2B<0..0>==1 then
+            nombreDeClk=1;
+        else 
+            if TCCR2B<2..2>==0 && TCCR2B<1..1>==1 && TCCR2B<0..0>==0 then
+                nombreDeClk=8;
+            else
+                if TCCR2B<2..2>==0 && TCCR2B<1..1>==1 && TCCR2B<0..0>==1 then
+                    nombreDeClk=32;
+                else 
+                    if TCCR2B<2..2>==1 && TCCR2B<1..1>==0 && TCCR2B<0..0>==0 then
+                        nombreDeClk=64;
+                    else 
+                        if TCCR2B<2..2>==1 && TCCR2B<1..1>==0 && TCCR2B<0..0>==1 then
+                            nombreDeClk=128;
+                        else 
+                            if TCCR2B<2..2>==1 && TCCR2B<1..1>==1 && TCCR2B<0..0>==0 then
+                                nombreDeClk=256;
+                            else 
+                                if TCCR2B<2..2>==1 && TCCR2B<1..1>==1 && TCCR2B<0..0>==1 then
+                                    nombreDeClk=1024;
+                                endif;
+                            endif;
+                        endif;
+                    endif;
+                endif;
+
+            endif;
+
+        endif;
+        schedule clk in nombreDeClk;
+
+
+
+        }
+
+
+
+

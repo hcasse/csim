@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CSIM_INSIDE
-#include "mem.h"
+/*#define CSIM_INSIDE
+#include "mem.h"*/
 #include "csim.h"
 
 /**
@@ -154,6 +154,49 @@ const char *csim_unit_name(csim_port_type_t t) {
 
 
 /**
+ * Perform a read access to an IO register. Log an error and returns -1 if
+ * there no corresponding IO register.
+ * @param board		Current board.
+ * @param addr		Accessed address.
+ * @param size		Size of access (in bytes).
+ * @return			Read word.
+ */
+csim_word_t csim_read_io(csim_board_t *board, csim_addr_t addr, int size) {
+	int h = CSIM_IO_HASH(addr);
+	for(csim_io_t *p = board->ios[h]; p != NULL; p = p->next)
+		if(p->addr == addr) {
+			int i = (addr - p->inst->base - p->reg->offset) / p->reg->stride;
+			if(size != p->reg->size)
+				board->log(board, CSIM_ERROR, "bad IO access at %08x: size=%d and should be %d", addr, size, p->reg->size);
+			return p->reg->read(p->inst, i);
+		}
+	board->log(board, CSIM_ERROR, "bad IO access, unknown address at %08x", addr, size);
+	return -1;
+}
+
+
+/**
+ * Perform a write access to an IO register. Log an error if there is no
+ * corresponding IO register.
+ * @param board		Current board.
+ * @param addr		Accessed address.
+ * @param size		Size of access (in bytes).
+ */
+void csim_write_io(csim_board_t *board, csim_addr_t addr, int size, csim_word_t word) {
+	int h = CSIM_IO_HASH(addr);
+	for(csim_io_t *p = board->ios[h]; p != NULL; p = p->next)
+		if(p->addr == addr) {
+			int i = (addr - p->inst->base - p->reg->offset) / p->reg->stride;
+			if(size != p->reg->size)
+				board->log(board, CSIM_ERROR, "bad IO access at %08x: size=%d and should be %d", addr, size, p->reg->size);
+			p->reg->write(p->inst, i, word);
+			return;
+		}
+	board->log(board, CSIM_ERROR, "bad IO access, unknown address at %08x", addr, size);
+}
+
+
+/**
  * Called to manage an IO.
  * @param addr		Accessed address.
  * @param size		Accessed size.
@@ -162,7 +205,7 @@ const char *csim_unit_name(csim_port_type_t t) {
  * @param cdata		Should be board.
  * @ingroup csim
  */
-static void csim_on_io(csim_addr_t addr, int size, void *data, int access, void *cdata) {
+void csim_on_io(csim_addr_t addr, int size, void *data, int access, void *cdata) {
 	csim_board_t *board = (csim_board_t *)cdata;
 	int h = CSIM_IO_HASH(addr);
 	for(csim_io_t *p = board->ios[h]; p != NULL; p = p->next)
@@ -213,10 +256,12 @@ static void csim_io_install(
 	csim_reg_t *reg,
 	csim_addr_t addr
 ) {
-	csim_addr_t pa = addr & ~(CSIM_PAGE_SIZE - 1);
+	/*csim_addr_t pa = addr & ~(CSIM_PAGE_SIZE - 1);
 	if(csim_get_callback_data(board->mem, pa) == NULL)
-		csim_set_range_callback(board->mem, pa, pa + reg->size - 1, csim_on_io, board);
-
+		csim_set_range_callback(board->mem, pa, pa + reg->size - 1, csim_on_io, board);*/
+	csim_core_inst_t *core = board->cores;
+	assert(core);
+	csim_core(core)->install(core, reg, addr);
 }
 
 /**
@@ -276,7 +321,7 @@ void csim_io_remove(csim_reg_t * reg, csim_inst_t *inst) {
  * @return		Built board (or null if allocation fails).
  * @ingroup csim
  */
-csim_board_t *csim_new_board(const char *name, csim_memory_t *mem) {
+csim_board_t *csim_new_board(const char *name/*, csim_memory_t *mem*/) {
 	csim_board_t *board = (csim_board_t *)malloc(sizeof(csim_board_t));
 	if(board == NULL)
 		return NULL;
@@ -288,7 +333,7 @@ csim_board_t *csim_new_board(const char *name, csim_memory_t *mem) {
 	board->date = 0;
 	board->evts = NULL;
 	board->level = CSIM_INFO;
-	board->mem = mem;
+	//board->mem = mem;
 	board->log = csim_log;
 	memset(board->ios, 0, sizeof(csim_io_t *) * CSIM_IO_SIZE);
 	return board;
@@ -331,7 +376,7 @@ void csim_delete_board(csim_board_t *board) {
 void csim_reset_board(csim_board_t *board) {
 
 	/* reset memory */
-	csim_mem_reset(board->mem);
+	//csim_mem_reset(board->mem);
 
 	/* reset all component instances */
 	for(csim_inst_t *i = board->insts; i != NULL; i = i->next)
@@ -439,10 +484,10 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	comp->construct(i, confs);
 
 	/* record the IO registers */
-	if(board->mem != NULL)
+	if(board->cores != NULL)
 		csim_record_regs(board, i);
 	else if(comp->type == CSIM_CORE) {
-		board->mem = csim_core_memory((csim_core_inst_t *)i);
+		//board->mem = csim_core_memory((csim_core_inst_t *)i);
 		for(csim_inst_t *ui = board->insts; ui != NULL; ui = ui->next)
 			csim_record_regs(board, ui);
 	}
@@ -742,7 +787,9 @@ csim_component_t *csim_find_component(const char *name) {
  * @return			Read byte.
  */
 uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read8(board->mem, addr);
+	csim_core_inst_t *core = board->cores;
+	assert(core);
+	return csim_core(core)->load_byte(core, addr);
 }
 
 /**
@@ -752,7 +799,9 @@ uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr) {
  * @return			Read half-word.
  */
 uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read16(board->mem, addr);
+	csim_core_inst_t *core = board->cores;
+	assert(core);
+	return csim_core(core)->load_half(core, addr);
 }
 
 /**
@@ -762,7 +811,9 @@ uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr) {
  * @return			Read word.
  */
 uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read32(board->mem, addr);
+	csim_core_inst_t *core = board->cores;
+	assert(core);
+	return csim_core(core)->load_word(core, addr);
 }
 
 /**
@@ -772,5 +823,5 @@ uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr) {
  * @return			Read long word.
  */
 uint64_t csim_long_at(csim_board_t *board, csim_addr_t addr) {
-	return csim_mem_read64(board->mem, addr);
+	assert(0 && "unsupported");
 }

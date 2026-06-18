@@ -1,7 +1,7 @@
 
 include ../config.mk
 
-MODULE = csim
+MODULE = libcsim
 PYTHON = $(shell which python3)
 PYTHON_CONFIG = python3-config
 LIBEXT=$(shell $(PYTHON_CONFIG) --extension-suffix)
@@ -12,10 +12,9 @@ CFLAGS = \
 LDFLAGS = \
 	$(shell $(PYTHON_CONFIG) --ldflags) \
 	-L .. -lcsim
-ifdef WITH_ARMV5T
-LDFLAGS += -L$(WITH_ARMV5T)/src -larm
+ifdef ARMV5T_PATH
+LDFLAGS += -L../$(ARMV5T_PATH)/src -larm
 endif
-
 
 export PYTHONPATH=$(WITH_ORCHID):$(PWD)
 

@@ -1,7 +1,38 @@
+#
+#	CSim component simulator
+#	Copyright (C) 2026 University of Toulouse <hugues.casse@irit.fr>
+#
+#	This program is free software: you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation, either version 3 of the License, or
+#	(at your option) any later version.
+#
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
 """Application for csimui."""
 
+import csim
 from orchid import *
 from orchid import svg
+
+def make_io(board, name, comp, inst, atts):
+	"""Ensures translation of IO components"""
+	type = csim.get(atts, "type", None)
+	assert type is not None
+	try:
+		mod = __import__("csim.ui.%s" % type, fromlist=["csim.ui"])
+	except ImportError as e:
+		raise csim.BoardError("cannot load %s: %s" % (type, e))
+	return mod.Component(board, name, comp, inst, atts)
+
+csim.COMPONENTS[csim.CSIM_IO] = make_io
 
 class MyPage(Page):
 
@@ -74,6 +105,3 @@ class MyApp(Application):
 
 	def first(self):
 		return self.fst
-
-	def run(self):
-		run(self)

@@ -22,8 +22,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define CSIM_INSIDE
-#include "mem.h"
 #include "csim.h"
 
 
@@ -72,7 +70,7 @@ csim_reg_t c1_regs[] = {
 	{ "R", 0x100, 4, 1, 1, 0, CSIM_INT, NULL, NULL, c1_read, c1_write, NULL, NULL }
 };
 
-csim_component_t c1 = {	
+csim_component_t c1 = {
 	"C1",
 	CSIM_SIMPLE,
 	1,
@@ -110,7 +108,7 @@ csim_port_t c2_ports[] = {
 };
 
 
-csim_component_t c2 = {	
+csim_component_t c2 = {
 	"C2",
 	CSIM_SIMPLE,
 	1,
@@ -125,8 +123,7 @@ csim_component_t c2 = {
 };
 
 int main() {
-	csim_memory_t *mem = csim_mem_new();
-	csim_board_t *board = csim_new_board("my-board", mem);
+	csim_board_t *board = csim_new_board("my-board");
 	board->level = CSIM_DEBUG;
 
 	csim_inst_t *i1 = csim_new_component(board, &c1, "i1", 0x80000000);
@@ -134,12 +131,11 @@ int main() {
 	csim_connect(i1, &c1_ports[0], i2, &c2_ports[0]);
 
 	csim_run(board, 50);
-	
-	csim_mem_write32(mem, 0x80000100, 111);
-	printf("read: %d\n", csim_mem_read32(mem, 0x80000100));
+
+	/*csim_mem_write32(mem, 0x80000100, 111);
+	printf("read: %d\n", csim_mem_read32(mem, 0x80000100));*/
 
 	csim_connect(i1, &c1_ports[0], i2, &c2_ports[0]);
 	csim_delete_board(board);
-	csim_mem_delete(mem);
 	return 0;
 }

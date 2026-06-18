@@ -1,0 +1,90 @@
+let component = "oscillator"
+let arch = "ATmega328P"
+let license = "GPL"
+let io_comp = 1
+let copyright = "University of Toulouse 3"
+let date = "26/04/2025"
+
+type bit = card(1)
+type byte = card(8)
+type word = card(16)
+
+let frequence = 16000000 // en Hz (16 MHz)
+
+// -------------------------------------------------------
+// ----- Déclaration des registres internes
+// -------------------------------------------------------
+
+reg OSC_ENABLED [1, bit]
+    label = "Oscillator Enable"
+    intern = 1
+    offset = 0x70
+    init = 0x0 // Désactivé au début
+
+reg STARTUP_DELAY [1, word]
+    label = "Startup Delay Register"
+    intern = 1
+    offset = 0x72
+    init = 1000 // Temps de start-up en µs
+
+reg CURRENT_TIME [1, word]
+    label = "Internal Timer for Startup"
+    intern = 1
+    offset = 0x73
+    init = 0
+
+// -------------------------------------------------------
+// ----- Déclaration des registres
+// -------------------------------------------------------
+
+reg OSC_READY [1, bit]
+    label = "Oscillator Ready Flag"
+    offset = 0x71
+    init = 0x0
+
+reg XTAL_CTRL [1, byte]
+    // [7] Enable Oscillator
+    // [6:0] Reserved
+    label = "Oscillator Control Register"
+    offset = 0x40
+    init = 0x00
+    on_write = {
+        if XTAL_CTRL<7 .. 7> == 1 then
+            OSC_ENABLED = 1;
+            CURRENT_TIME = 0;
+            schedule startup_sequence in 1;
+        else
+            OSC_ENABLED = 0;
+            OSC_READY = 0;
+        endif;
+    }
+
+// -------------------------------------------------------
+// ----- Déclaration des ports
+// -------------------------------------------------------
+
+port XTAL1 (1, bit)
+    init = 0
+    label = "Oscillator Input Pin"
+
+port XTAL2 (1, bit)
+    init = 0
+    label = "Oscillator Output Pin"
+
+// -------------------------------------------------------
+// ----- Comportement de l'oscillateur
+// -------------------------------------------------------
+
+event startup_sequence
+    on_trigger = {
+        if OSC_ENABLED == 1 then
+            if CURRENT_TIME >= STARTUP_DELAY then
+                OSC_READY = 1;
+                XTAL1 = 1; // signal présent
+                XTAL2 = 1; // signal présent
+            else
+                CURRENT_TIME = CURRENT_TIME + 1;
+                schedule startup_sequence in 1;
+            endif;
+        endif;
+    }

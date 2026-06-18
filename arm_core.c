@@ -21,12 +21,13 @@
 
 #include <string.h>
 
-#define CSIM_INSIDE
-#include "mem.h"
 #include "csim.h"
 
 #include <arm/api.h>
 #include <arm/loader.h>
+#include <arm/mem.h>
+
+#define CSIM_PAGE_SIZE 4096
 
 #define SIM_SLICE	10
 #include "arm_core.h"
@@ -38,6 +39,7 @@ int TAB_INTERRUPT[] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
 typedef struct {
 	csim_core_inst_t inst;
 	arm_platform_t *pf;
+	arm_memory_t *mem;
 	arm_state_t *state;
 	arm_sim_t *sim;
 } arm_core_inst_t;
@@ -50,6 +52,8 @@ static void construct(csim_inst_t *inst, csim_confs_t confs) {
 	i->pf = arm_new_platform();
 	i->state = arm_new_state(i->pf);
 	i->sim = arm_new_sim(i->state, 0, 0);
+	i->mem = arm_get_memory(i->pf, ARM_MAIN_MEMORY);
+
 }
 
 static void destruct(csim_inst_t *inst) {
@@ -166,6 +170,48 @@ static csim_word_t arm_null_read(csim_inst_t *inst, int num) { return 0; }
 static void arm_null_write(csim_inst_t *inst, int num, csim_word_t val) { }
 
 
+static void arm_install(csim_core_inst_t *_inst, csim_reg_t *reg, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	csim_addr_t pa = addr & ~(CSIM_PAGE_SIZE - 1);
+	if(arm_get_callback_data(inst->mem, pa) == NULL)
+		arm_set_range_callback(inst->mem, pa, pa+reg->size-1, csim_on_io, _inst->inst.board);
+
+}
+
+static void arm_uninstall(csim_core_inst_t *inst, csim_reg_t *reg, csim_addr_t addr) {
+	// uninstall impossible for now
+}
+
+static uint8_t arm_load_byte(csim_core_inst_t *_inst, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	return arm_mem_read8(inst->mem, addr);
+}
+
+static uint16_t arm_load_half(csim_core_inst_t *_inst, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	return arm_mem_read16(inst->mem, addr);
+}
+
+static uint32_t arm_load_word(csim_core_inst_t *_inst, csim_addr_t addr) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	return arm_mem_read32(inst->mem, addr);
+}
+
+static void arm_store_byte(csim_core_inst_t *_inst, csim_addr_t addr, uint8_t val) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	arm_mem_write8(inst->mem, addr, val);
+}
+
+static void arm_store_half(csim_core_inst_t *_inst, csim_addr_t addr, uint16_t val) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	arm_mem_write16(inst->mem, addr, val);
+}
+
+static void arm_store_word(csim_core_inst_t *_inst, csim_addr_t addr, uint32_t val) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	arm_mem_write32(inst->mem, addr, val);
+}
+
 static csim_reg_t arm_regs[] = {
 	{
 		"R", 0, 4, 16, 1, CSIM_INTERN, CSIM_INT,
@@ -207,5 +253,13 @@ csim_core_t arm_component = {
 	disasm,
 	memory,
 	interrupt,
-	inst_size
+	inst_size,
+	arm_install,
+	arm_uninstall,
+	arm_load_byte,
+	arm_load_half,
+	arm_load_word,
+	arm_store_byte,
+	arm_store_half,
+	arm_store_word
 };
