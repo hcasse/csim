@@ -28,26 +28,13 @@
 #include <termio.h>
 #include <unistd.h>
 
-#define CSIM_INSIDE
 #include "csim.h"
-#include "mem.h"
 
 #include "button.h"
 #include "led.h"
 
 #include "arm_core.h"
 
-/* Composants internes ATMEGA328P */
-#include "portb.h"
-#include "portc.h"
-#include "portd.h"
-#include "tc16bit1.h"
-#include "tc8bit0.h"
-#include "oscillator.h"
-
-/*#include "yaml.h"
-
-#include "arm_core.h"*/
 #include "button.h"
 #include "led.h"
 
@@ -223,7 +210,7 @@ int main(int argc, const char *argv[]) {
     if (board_path == NULL) {
         if (VERBOSE)
             fprintf(stderr, "setting default board!\n");
-        board = csim_new_board("default", NULL);
+        board = csim_new_board("default");
         core = (csim_core_inst_t *)csim_new_component(board, &arm_component.comp, "core", 0);
         char *confs[] = {"key", "a", NULL};
         csim_new_component(board, &led_component.comp, "led", 0xA0000000);
@@ -232,7 +219,7 @@ int main(int argc, const char *argv[]) {
     } else {
         if (VERBOSE)
             fprintf(stderr, "loading board from %s\n", board_path);
-        board = csim_load_board(board_path, NULL);
+        board = csim_load_board(board_path);
         if (board == NULL) {
             fprintf(stderr, "ERROR: cannot load the board!\n");
             exit(3);

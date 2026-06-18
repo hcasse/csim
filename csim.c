@@ -718,6 +718,26 @@ void csim_cancel_event(csim_board_t *board, csim_evt_t *evt) {
 	}
 }
 
+/**
+ * Consume all events for the current date.
+ * @param board		Current board.
+ */
+static void consume_events(csim_board_t *board) {
+	while(board->evts != NULL && board->evts->date <= board->date) {
+		csim_evt_t *evt = board->evts;
+		if(CSIM_DEBUG >= board->level)
+			board->log(board, CSIM_DEBUG, "trigger event from %s", evt->inst->name);
+		evt->trigger(evt);
+		board->evts = evt->next;
+		if(board->evts != NULL)
+			board->evts->prev = NULL;
+		evt->next = NULL;
+		if(evt->period != 0) {
+			evt->date += evt->period;
+			csim_record_event(board, evt);
+		}
+	}
+}
 
 /**
  * Simulate for the given amount of time.
@@ -729,30 +749,23 @@ void csim_run(csim_board_t *board, csim_time_t time) {
 	csim_date_t end = board->date + time;
 	while(board->date < end) {
 		csim_log(board, CSIM_DEBUG, "next");
-
-		while(board->evts != NULL && board->evts->date <= board->date) {
-			csim_evt_t *evt = board->evts;
-			if(CSIM_DEBUG >= board->level)
-				board->log(board, CSIM_DEBUG, "trigger event from %s", evt->inst->name);
-			evt->trigger(evt);
-			board->evts = evt->next;
-			if(board->evts != NULL)
-				board->evts->prev = NULL;
-			evt->next = NULL;
-			if(evt->period != 0) {
-				evt->date += evt->period;
-				csim_record_event(board, evt);
-			}
-		}
-
-		csim_core_inst_t *core = board->cores;
-		while(core != NULL) {
+		consume_events(board);
+		for(csim_core_inst_t *core = board->cores; core; core = core->next)
 			((csim_core_t *)core->inst.comp)->step(core);
-			core = core->next;
-		}
-
 		board->date++;
 	}
+}
+
+/**
+ * Execute the current instruction and increase by 1 cycle.
+ * @param board		Current board.
+ */
+void csim_step(csim_board_t *board) {
+	csim_log(board, CSIM_DEBUG, "step");
+	consume_events(board);
+	for(csim_core_inst_t *core = board->cores; core; core = core->next)
+		((csim_core_t *)core->inst.comp)->step_inst(core);
+	board->date++;
 }
 
 /**

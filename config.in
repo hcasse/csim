@@ -1,4 +1,5 @@
-# ARMV5T=armv5t
-# WITH_STM32 = 1	# Generate code for STM32 board
-# WITH_PYTHON = 1	# Build Python module.
-# STM32 = 1	# Generate code for STM32 board
+# ARMV5T_PATH=armv5t	# Generate code for ARM v5t core
+# ORCHID_PATH=Orchid	# Use Python's UI Orchid at provided path
+# WITH_STM32 = 1		# Generate code for STM32 board
+# WITH_PYTHON = 1		# Build Python module.
+# WITH_ATMEGA328P = 1	# Generate code for ATMEGA328P board

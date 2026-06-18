@@ -67,7 +67,12 @@ static void reset(csim_inst_t *inst) {
 	arm_reset_state(i->state);
 }
 
-static void step(csim_core_inst_t *_inst) {
+static void csim_arm_step(csim_core_inst_t *_inst) {
+	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
+	arm_step(inst->sim);
+}
+
+static void csim_arm_step_inst(csim_core_inst_t *_inst) {
 	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
 	for(int i = 0; i < SIM_SLICE; i++)
 		arm_step(inst->sim);
@@ -247,7 +252,8 @@ csim_core_t arm_component = {
 		reset
 	},
 	0,	// clock
-	step,
+	csim_arm_step,
+	csim_arm_step_inst,
 	load,
 	pc,
 	disasm,

@@ -182,6 +182,7 @@ struct csim_core_t {
 	csim_component_t comp;
 	csim_clock_t clock;
 	void (*step)(csim_core_inst_t *inst);
+	void (*step_inst)(csim_core_inst_t *inst);
 	int (*load)(csim_core_inst_t *inst, const char *path);
 	csim_addr_t (*pc)(csim_core_inst_t *inst);
 	void (*disasm)(csim_core_inst_t *inst, csim_addr_t addr, char buf[]);
@@ -275,6 +276,7 @@ void csim_record_event(csim_board_t *board, csim_evt_t *evt);
 void csim_cancel_event(csim_board_t *board, csim_evt_t *evt);
 
 void csim_run(csim_board_t *board, csim_time_t time);
+void csim_step(csim_board_t *board);
 
 void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state);
 

@@ -29,17 +29,8 @@
 #include "arm_core.h"
 #include "button.h"
 #include "led.h"
-#include "leds10.h"
-#include "seven_seg_controller.h"
-#include "seven_seg_display.h"
 #include "timer.h"
 
-/* Composants internes ATMEGA328P */
-#include "portb.h"
-#include "portc.h"
-#include "portd.h"
-#include "tc16bit1.h"
-#include "tc8bit0.h"
 
 /**
  * Available components.
@@ -47,15 +38,6 @@
 csim_component_t *comps[] = {
 	&led_component.comp,
 	&button_component.comp,
-	&seven_seg_controller_component,
-	&timer_component,
-	&seven_seg_display_component.comp,
-	&leds10_component,
-	&arm_component.comp,
-	&portb_component,
-	&portc_component,
-	&portd_component,
-	&tc8bit0_component,
 	NULL
 };
 

@@ -58,6 +58,15 @@ run(PyObject *self, PyObject *args) {
 }
 
 static PyObject *
+step(PyObject *self, PyObject *args) {
+	PyObject *board;
+	if(!PyArg_ParseTuple(args, "O", &board))
+		return NULL;
+	csim_step(TPTR(csim_board_t, board));
+	RETURN_NONE;
+}
+
+static PyObject *
 load_board(PyObject *self, PyObject *args) {
 	const char *path;
 	if(!PyArg_ParseTuple(args, "s", &path))
@@ -369,7 +378,8 @@ static PyMethodDef csim_methods[] = {
 		"memory may be None. Return the board."),
 	FUN(delete_board, "(board) Delete the given board"),
 	FUN(reset_board, "(board): reset the board."),
-	FUN(run, "(board, time) Run the board during time cycles"),
+	FUN(run, "(board, time) Run the board during time cycles."),
+	FUN(step, "(board) Execute the current instruction."),
 	FUN(load_board, "(path) Load the given executable and build/return the board"),
 	FUN(get_core, "(board) Get the execution core of the board (may return None if there is no core)."),
 	FUN(core_load, "(core instance, path) Load the executable from the path into the board containing the core."

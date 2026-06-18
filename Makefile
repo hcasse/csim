@@ -3,9 +3,16 @@
 # Configuration
 YAML=$(PWD)/easy-yaml
 
-HEADERS=csim.h
-COMPONENTS= seven_seg_controller.c seven_seg_display.c led.c button.c leds10.c leds10.c timer.c portd.c portb.c portc.c tc8bit0.c tc16bit1.c
-SOURCES=csim.c yaml.c  csim-rt.o arm_core.c loader.c $(COMPONENTS)
+HEADERS=\
+	csim.h
+SOURCES=\
+	csim.c \
+	yaml.c \
+	csim-rt.o \
+	arm_core.c \
+	led.c \
+	button.c \
+	loader.c
 
 CFLAGS=-g3 -Wall -fPIC -I. -DCOMPAT
 LDFLAGS=-L. -lcsim
@@ -14,12 +21,15 @@ LDFLAGS=-L. -lcsim
 ALL =
 CLEAN =
 DISTCLEAN =
+
+# STM32 option
 ifdef WITH_STM32
 ALL += stm32-all
 CLEAN += stm32-clean
 DISTCLEAN += stm32-distclean
 endif
 
+# AVR option
 ifdef WITH_ATMEGA328P
 ALL += atmega328p-all
 CLEAN += atmega328p-clean
@@ -32,12 +42,11 @@ CFLAGS += -DNO_MEM -I$(ARMV5T_PATH)/include
 LDFLAGS += -L$(ARMV5T_PATH)/src -larm
 endif
 
-
 # Python option
 ifdef WITH_PYTHON
-ALL += with-python
+ALL += python-all
+CLEAN += python-clean
 endif
-
 
 # useful definitions
 OBJECTS=$(SOURCES:.c=.o)
@@ -61,14 +70,13 @@ csim-run: csim-run.o libcsim.a
 libcsim.a: $(OBJECTS)
 	ar rcs $@ $(OBJECTS)
 
-csim.o: csim.h mem.h
-mem.o: mem.h
+# source dependencies
+csim.o: csim.h
 test-csim.o: csim.h
 yaml.o: yaml.h
-test2.o: csim.h mem.h yaml.h led.h button.h portd.h portb.h portc.h tc8bit0.h
+test2.o: csim.h yaml.h led.h button.h
 csim-rt.o: csim-rt.h
 loader.o: csim.h yaml.h
-%.o: $(COMPONENTS)
 
 FILES = \
 	csim/README.md \
@@ -103,8 +111,11 @@ atmega328p-clean:
 	cd atmega328p; make clean
 
 # python rules
-with-python:
+python-all:
 	cd python; make
+
+python-clean:
+	cd python; make clean
 
 # setup
 GLISS_GIT = https://git.renater.fr/anonscm/git/gliss2/gliss2.git
