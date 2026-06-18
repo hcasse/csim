@@ -5,7 +5,7 @@ YAML=$(PWD)/easy-yaml
 
 HEADERS=csim.h
 COMPONENTS= seven_seg_controller.c seven_seg_display.c led.c button.c leds10.c leds10.c timer.c
-SOURCES=csim.c yaml.c  csim-rt.o arm_core.c loader.c $(COMPONENTS)
+SOURCES=csim.c yaml.c  csim-rt.o loader.c $(COMPONENTS)
 
 CFLAGS=-g3 -Wall -fPIC -I. -DCOMPAT
 LDFLAGS=-L. -lcsim
@@ -14,6 +14,7 @@ LDFLAGS=-L. -lcsim
 ALL =
 CLEAN =
 DISTCLEAN =
+SUBDIRS =
 ifdef WITH_STM32
 ALL += stm32-all
 CLEAN += stm32-clean
@@ -24,27 +25,41 @@ endif
 ifdef ARMV5T_PATH
 CFLAGS += -DNO_MEM -I$(ARMV5T_PATH)/include
 LDFLAGS += -L$(ARMV5T_PATH)/src -larm
-else
-SOURCES += mem.c
+SOURCES += arm_core.c
 endif
+
+# component subsets
+ifdef WITH_STM32
+SUBDIRS = stm32
+CFLAGS += -DWITH_STM32
+LDFLAGS += -Lstm32 -lstm32
+endif
+
 
 # useful definitions
 OBJECTS=$(SOURCES:.c=.o)
 
-
 # rules
-all: gliss-all libcsim.a test-csim csim-run $(ALL)
+all: gliss-all all-subdirs libcsim.a test-csim csim-run csim-server $(ALL)
+
+all-subdirs:
+	for d in $(SUBDIRS); do cd $$d; make all; done
 
 clean: gliss-clean $(CLEAN)
 	-rm -rf $(OBJECTS) test-csim.o test-csim
+	-for d in $(SUBDIRS); do cd $$d; make clean; done
 
 distclean: clean $(DISTCLEAN)
 	-rm -rf test-csim test2 libcsim.a
+	-for d in $(SUBDIRS); do cd $$d; make distclean; done
 
 test-csim: test-csim.o libcsim.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 csim-run: csim-run.o libcsim.a
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+csim-server: server.o libcsim.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 libcsim.a: $(OBJECTS)
@@ -57,6 +72,7 @@ yaml.o: yaml.h
 test2.o: csim.h yaml.h led.h button.h
 csim-rt.o: csim-rt.h
 loader.o: csim.h yaml.h
+server.o: csim.h
 %.o: $(COMPONENTS)
 
 FILES = \

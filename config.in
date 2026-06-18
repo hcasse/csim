@@ -1,5 +1,5 @@
 # ARMV5T_PATH=armv5t
 # ORCHID_PATH=Orchid
 
-# STM32 = 1	# Generate code for STM32 board
+# WITH_STM32 = 1	# Generate code for STM32 board
 

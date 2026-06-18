@@ -21,8 +21,6 @@
 
 #include <string.h>
 
-/*#define CSIM_INSIDE
-#include "mem.h"*/
 #include "csim.h"
 
 #include <arm/api.h>
