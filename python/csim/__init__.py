@@ -56,11 +56,20 @@ def obtain(map, name, msg):
 	except KeyError:
 		raise BoardError(msg)
 
+# Log levels
+CSIM_NOLOG = 0
+CSIM_DEBUG = 1
+CSIM_INFO = 2
+CSIM_WARN = 3
+CSIM_ERROR = 4
+CSIM_FATAL = 5
 
+# Component type
 CSIM_SIMPLE = 1
 CSIM_CORE = 2
 CSIM_IO = 3
 
+# Register type
 class RType(IntEnum):
 	NONE = 0
 	BITS = 1
@@ -350,17 +359,20 @@ class Board:
 
 	def get_date(self):
 		"""Get the date of the simulated board."""
-		return csim.get_date(self.board)
+		return libcsim.get_date(self.board)
 
 	def byte_at(self, addr):
 		"""Get the byte at provided address."""
-		return csim.byte_at(self.board, addr)
+		return libcsim.byte_at(self.board, addr)
 
 	def half_at(self, addr):
 		"""Get the half-word at provided address."""
-		return csim.half_at(self.board, addr)
+		return libcsim.half_at(self.board, addr)
 
 	def word_at(self, addr):
 		"""Get the word at provided address."""
-		return csim.word_at(self.board, addr)
+		return libcsim.word_at(self.board, addr)
 
+	def set_log_level(self, level):
+		"""Set the log level (one of CSIM_DEBUG, CSIM_INFO, etc)."""
+		libcsim.set_log_level(self.board, level)

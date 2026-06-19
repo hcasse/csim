@@ -22,6 +22,8 @@ import csim
 from orchid import *
 from orchid import svg
 
+RUN_FREQ = 10
+
 def make_io(board, name, comp, inst, atts):
 	"""Ensures translation of IO components"""
 	type = csim.get(atts, "type", None)
@@ -37,8 +39,8 @@ csim.COMPONENTS[csim.CSIM_IO] = make_io
 class MyPage(Page):
 
 	def __init__(self, app, board):
-		self.quantum = 10
 		self.board = board
+		self.date = Label("XXXXXXXXX")
 		self.addr = Label("XXXX XXXXX")
 		self.inst = Label("NOP")
 		self.run_but = Button("Run", on_click=self.run)
@@ -55,6 +57,7 @@ class MyPage(Page):
 					self.run_but,
 					self.stop_but,
 					self.step_but,
+					self.date,
 					self.addr,
 					self.inst
 				]),
@@ -63,14 +66,17 @@ class MyPage(Page):
 			app = app
 		)
 		self.show_current()
-		n = board.get_clock() // self.quantum
-		self.timer = Timer(self, trigger=self.run_once, period=1000/n)
+		self.timer = Timer(self, trigger=self.run_once, period=1000/RUN_FREQ)
+		self.quantum = board.get_clock() // RUN_FREQ
+		print(f"DEBUG: clock = {board.get_clock()}")
+		print(f"DEBUG: quantum = {self.quantum}")
 
 	def show_current(self):
 		addr = self.board.core.pc()
 		self.addr.set_text("%08x" % addr)
 		text = self.board.core.disasm(addr)
 		self.inst.set_text(text)
+		self.date.set_text(f"{self.board.get_date():9}")
 
 	def run(self):
 		self.timer.start()
