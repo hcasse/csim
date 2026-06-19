@@ -37,6 +37,7 @@ csim.COMPONENTS[csim.CSIM_IO] = make_io
 class MyPage(Page):
 
 	def __init__(self, app, board):
+		self.quantum = 10
 		self.board = board
 		self.addr = Label("XXXX XXXXX")
 		self.inst = Label("NOP")
@@ -62,7 +63,7 @@ class MyPage(Page):
 			app = app
 		)
 		self.show_current()
-		n = board.clock // board.quantum
+		n = board.get_clock() // self.quantum
 		self.timer = Timer(self, trigger=self.run_once, period=1000/n)
 
 	def show_current(self):
@@ -84,11 +85,11 @@ class MyPage(Page):
 		self.stop_but.disable()
 
 	def step(self):
-		self.board.run(1)
+		self.board.step()
 		self.show_current()
 
 	def run_once(self):
-		self.board.run(self.board.quantum)
+		self.board.run(self.quantum)
 		self.show_current()
 		self.board.update()
 

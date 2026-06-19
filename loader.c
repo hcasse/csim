@@ -38,6 +38,7 @@
 csim_component_t *comps[] = {
 	&led_component.comp,
 	&button_component.comp,
+	&arm_component.comp,
 	NULL
 };
 
@@ -53,7 +54,7 @@ typedef struct {
     csim_inst_t *from_inst, *to_inst;
     csim_port_t *from_port, *to_port;
     int conf_cnt;
-    char *confs[32];
+    const char *confs[32];
 } loader_t;
 
 /**
@@ -190,9 +191,9 @@ static void on_end(void *data) {
 
         /* buiild the component */
         loader->confs[loader->conf_cnt] = NULL;
-        csim_new_component_ext(loader->board, type, loader->name, loader->base, loader->confs);
+        csim_new_component_ext(loader->board, type, loader->confs);
         for (int i = 0; i < loader->conf_cnt; i++)
-            free(loader->confs[i]);
+            free((char *)loader->confs[i]);
         loader->conf_cnt = 0;
 
         loader->state = IN_COMPS;

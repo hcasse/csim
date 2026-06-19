@@ -27,16 +27,14 @@
 #include <arm/loader.h>
 #include <arm/mem.h>
 
-#define CSIM_PAGE_SIZE 4096
-
-#define SIM_SLICE	10
+#define CSIM_PAGE_SIZE	4096
 #include "arm_core.h"
 
 
 // Adresses des interruptions, l'indice dans le tableau est le code d'interruption.
 int TAB_INTERRUPT[] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
 
-typedef struct {
+typedef struct arm_core_inst_t {
 	csim_core_inst_t inst;
 	arm_platform_t *pf;
 	arm_memory_t *mem;
@@ -70,12 +68,6 @@ static void reset(csim_inst_t *inst) {
 static void csim_arm_step(csim_core_inst_t *_inst) {
 	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
 	arm_step(inst->sim);
-}
-
-static void csim_arm_step_inst(csim_core_inst_t *_inst) {
-	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
-	for(int i = 0; i < SIM_SLICE; i++)
-		arm_step(inst->sim);
 }
 
 static int load(csim_core_inst_t *_inst, const char *path) {
@@ -239,6 +231,14 @@ static csim_reg_t arm_regs[] = {
 };
 
 
+/**
+ * Component representing an ARM core.
+ *
+ * Parameters:
+ * * mult=INT -- number of instructions executed for each board cycle.
+ *
+ * @ingroup csim
+ */
 csim_core_t arm_component = {
 	{
 		"arm",
@@ -249,11 +249,10 @@ csim_core_t arm_component = {
 		sizeof(arm_core_inst_t),
 		construct,
 		destruct,
-		reset
+		reset,
+		csim_default_update
 	},
-	0,	// clock
 	csim_arm_step,
-	csim_arm_step_inst,
 	load,
 	pc,
 	disasm,

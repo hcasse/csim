@@ -25,4 +25,4 @@ print("Running:")
 for i in range(10):
 	pc = core.pc()
 	print(f"{hex(pc)}: {core.disasm(pc)}")
-	board.run(1)
+	board.step()

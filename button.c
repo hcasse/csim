@@ -26,17 +26,17 @@ void button_destruct(csim_inst_t *c) {
 }
 
 void button_write(csim_inst_t *inst, int n, csim_word_t v) {
-	inst->board->log(inst->board, CSIM_INFO, "button_write(%d, %d)", n, v);
+	inst->board->log(inst->board, CSIM_DEBUG, "button_write(%d, %d)", n, v);
 }
 
 csim_word_t button_read(csim_inst_t *inst, int n) {
 	button_inst_t *i = (button_inst_t *)inst;
-	inst->board->log(inst->board, CSIM_INFO, "button_read(%d)", n);
+	inst->board->log(inst->board, CSIM_DEBUG, "button_read(%d)", n);
 	return i->pushed;
 }
 
 csim_reg_t button_regs[] = {
-	{ "R", 0, 4, 1, 1, 0, CSIM_INT, NULL, NULL, button_read, button_write, NULL, NULL }
+	{ "OUT", 0, 4, 1, 1, 0, CSIM_INT, NULL, NULL, button_read, button_write, NULL, NULL }
 };
 
 void button_update(csim_port_inst_t *port, csim_value_type_t type, csim_value_t val) {
@@ -87,7 +87,8 @@ csim_iocomp_t button_component = {
 		sizeof(button_inst_t),
 		button_construct,
 		button_destruct,
-		button_reset
+		button_reset,
+		csim_default_update
 	},
 	button_display,
 	button_on_key,

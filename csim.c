@@ -30,6 +30,8 @@
 #include "mem.h"*/
 #include "csim.h"
 
+#define CSIM_DEFAULT_CLOCK	1000
+
 /**
  * @defgroup csim Simulation Module
  *
@@ -315,27 +317,71 @@ void csim_io_remove(csim_reg_t * reg, csim_inst_t *inst) {
 
 
 /**
- * Initialize the board.
+ * Build a new board.
  * @param name	Board name.
- * @param mem	Memory to use (possibly NULL and then derived from core).
  * @return		Built board (or null if allocation fails).
  * @ingroup csim
  */
-csim_board_t *csim_new_board(const char *name/*, csim_memory_t *mem*/) {
+csim_board_t *csim_new_board(const char *name) {
+	const char *conf[] = { "name", name, NULL };
+	return csim_new_board_ext(conf);
+}
+
+
+/**
+ * Build a new board wit configuration.
+ *
+ * Supported configuration:
+ * * clock=INT -- board clock (default 1000Hz).
+ * * name=STRING -- name of the board
+ * * log=[0-5] -- select log level
+ *
+ * @param conf	Configuration.
+ * @return		Built board (or null if allocation fails).
+ * @ingroup csim
+ */
+csim_board_t *csim_new_board_ext(csim_confs_t conf) {
+
+	/* build the board */
 	csim_board_t *board = (csim_board_t *)malloc(sizeof(csim_board_t));
 	if(board == NULL)
 		return NULL;
-	board->name = name;
+	board->name = "no name";
 	board->insts = NULL;
 	board->cores = NULL;
 	board->iocomps = NULL;
-	board->clock = 0;
 	board->date = 0;
 	board->evts = NULL;
 	board->level = CSIM_INFO;
-	//board->mem = mem;
+	board->pending = NULL;
 	board->log = csim_log;
 	memset(board->ios, 0, sizeof(csim_io_t *) * CSIM_IO_SIZE);
+
+	/* scan the configuration */
+	csim_clock_t clock = CSIM_DEFAULT_CLOCK;
+	for(int i = 0; conf[i]; i += 2) {
+		if(strcmp(conf[i], "clock") == 0) {
+			int err;
+			clock = csim_parse_uint(conf[i + 1], &err);
+			if(err) {
+				csim_log(board, CSIM_ERROR, "bad clock expression '%s'", conf[i+1]);
+				clock = CSIM_DEFAULT_CLOCK;
+			}
+			else
+				board->log(board, CSIM_DEBUG, "clock = %ld", clock);
+		}
+		else if(strcmp(conf[i], "name") == 0) {
+			board->name = strdup(conf[i + 1]);
+			board->log(board, CSIM_DEBUG, "name = %s", board->name);
+		}
+		else if(strcmp(conf[i], "log") == 0) {
+			board->level = strtoul(conf[i+1], NULL, 10);
+			board->log(board, CSIM_DEBUG, "log level = %d", board->level);
+		}
+	}
+	board->clock = clock;
+
+	/* return board */
 	return board;
 }
 
@@ -403,8 +449,10 @@ void csim_reset_board(csim_board_t *board) {
  * @ingroup csim
  */
 csim_inst_t *csim_new_component(csim_board_t *board, csim_component_t *comp, const char *name, csim_addr_t base) {
-	csim_confs_t confs = { NULL };
-	return csim_new_component_ext(board, comp, name, base, confs);
+	char base_str[16];
+	sprintf(base_str, "%08x", base);
+	csim_confs_t confs = { "name", name, "base", base_str, NULL };
+	return csim_new_component_ext(board, comp, confs);
 }
 
 /**
@@ -419,27 +467,53 @@ static void csim_record_regs(csim_board_t *board, csim_inst_t *inst) {
 		csim_io_add(&comp->regs[j], inst);
 }
 
+
+/**
+ * Default update function that does nothing.
+ * @param inst	Component instance to update.
+ */
+void csim_default_update(csim_inst_t *inst) {
+}
+
+
 /**
  * Build a new instance of the given component and add it to the board.
  *
  * confs is a null-terminated array of strings organized by pairs which
  * first member is the entry name and the second the entry value.
  *
+ * Configuration:
+ * * name=STRING -- component name
+ * * base=INT -- base address of the component
+ *
  * @param board	Board to add to.
  * @param comp	Component to build an instance for.
- * @param name	Name of the instance.
- * @param base	Base adress of the instance.
  * @param confs	Configurations.
  * @return		Built instance.
  * @ingroup csim
  */
-csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp, const char *name, csim_addr_t base, csim_confs_t confs) {
+csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp, csim_confs_t confs) {
+
+	/* parse configuration */
+	const char *name = "no name";
+	csim_addr_t base = 0;
+	for(int i = 0; confs[i]; i += 2)
+		if(strcmp(confs[i], "name") == 0) {
+			name = strdup(confs[i + 1]);
+			board->log(board, CSIM_DEBUG, "name=%s", name);
+		}
+		else if(strcmp(confs[i], "base") == 0) {
+			base = strtoul(confs[i+1], NULL, 16);
+			board->log(board, CSIM_DEBUG, "base=%08x", base);
+		}
 
 	/* build the instance */
 	uint8_t *p = (uint8_t *)malloc(comp->size + comp->port_cnt * sizeof(csim_port_inst_t));
 	csim_inst_t *i = (csim_inst_t *)p;
+	i->next_pending = NULL;
+	i->flags = 0;
 	i->comp = comp;
-	i->name = strdup(name);
+	i->name = name;
 	i->base = base;
 	i->board = board;
 	i->ports = (csim_port_inst_t *)(p + comp->size);
@@ -460,15 +534,8 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	/* if core, record it in core list */
 	if(comp->type == CSIM_CORE) {
 		csim_core_inst_t *ci = (csim_core_inst_t *)i;
-		csim_core_t *cc = (csim_core_t *)comp;
 		ci->next = board->cores;
 		board->cores = ci;
-		if(board->clock == 0)
-			board->clock = cc->clock;
-		else if(cc->clock != 0) {
-			if(board->clock != cc->clock)
-				board->log(board, CSIM_FATAL, "ERROR: current version only supports multiple core with same clock.");
-		}
 	}
 
 	/* If IO component, record it in the IO list. */
@@ -479,7 +546,7 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	}
 
 	/* call preparation of the instance */
-	if(CSIM_DEBUG >=board->level)
+	if(CSIM_DEBUG >= board->level)
 		board->log(board, CSIM_INFO, "new instance %s of %s at %08x", name, comp->name, name);
 	comp->construct(i, confs);
 
@@ -506,6 +573,20 @@ void csim_delete_component(csim_inst_t *inst) {
 	b->log(b, CSIM_INFO, "deleting %s (%s)", inst->name, inst->comp->name);
 	inst->comp->destruct(inst);
 	free(inst);
+}
+
+
+/**
+ * Record a component ready to be updated.
+ * @param board		Current board.
+ * @param inst		Instance to wake up.
+ */
+void csim_wakeup(csim_board_t *board, csim_inst_t *inst) {
+	if(!(inst->flags & CSIM_PENDING)) {
+		inst->flags |= CSIM_PENDING;
+		inst->next_pending = board->pending;
+		board->pending = inst;
+	}
 }
 
 
@@ -718,6 +799,7 @@ void csim_cancel_event(csim_board_t *board, csim_evt_t *evt) {
 	}
 }
 
+
 /**
  * Consume all events for the current date.
  * @param board		Current board.
@@ -739,6 +821,20 @@ static void consume_events(csim_board_t *board) {
 	}
 }
 
+
+/**
+ * Update the components requiring it.
+ * @param board		Current board.
+ */
+static void update_components(csim_board_t *board) {
+	while(board->pending) {
+		csim_inst_t *inst = board->pending;
+		board->pending = inst->next_pending;
+		inst->flags &= ~CSIM_PENDING;
+	}
+}
+
+
 /**
  * Simulate for the given amount of time.
  * @param board		Board to simulate in.
@@ -752,6 +848,7 @@ void csim_run(csim_board_t *board, csim_time_t time) {
 		consume_events(board);
 		for(csim_core_inst_t *core = board->cores; core; core = core->next)
 			((csim_core_t *)core->inst.comp)->step(core);
+		update_components(board);
 		board->date++;
 	}
 }
@@ -764,7 +861,8 @@ void csim_step(csim_board_t *board) {
 	csim_log(board, CSIM_DEBUG, "step");
 	consume_events(board);
 	for(csim_core_inst_t *core = board->cores; core; core = core->next)
-		((csim_core_t *)core->inst.comp)->step_inst(core);
+		((csim_core_t *)core->inst.comp)->step(core);
+	update_components(board);
 	board->date++;
 }
 
@@ -773,18 +871,25 @@ void csim_step(csim_board_t *board) {
  * @param inst	IO component instance.
  * @param state	Buffer to store state inside.
  * @param size	Size of state in pairs of uint32_t.
+ * @ingroup csim
  */
 void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state) {
 }
 
 
+/**
+ * Defines the available components.
+ * @ingroup csim
+ */
 extern csim_component_t *comps[];
+
 
 /**
  * Find a component by its name, possibly using some mechanism to get access
  * to it.
  * @param name	Component name.
  * @return		Component definition or NULL.
+ * @ingroup csim
  */
 csim_component_t *csim_find_component(const char *name) {
 	for(int i = 0; comps[i] != NULL; i++)
@@ -798,6 +903,7 @@ csim_component_t *csim_find_component(const char *name) {
  * @param board		Current board.
  * @param addr		Address to read byte from.
  * @return			Read byte.
+ * @ingroup csim
  */
 uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr) {
 	csim_core_inst_t *core = board->cores;
@@ -810,6 +916,7 @@ uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr) {
  * @param board		Current board.
  * @param addr		Address to read half-word from.
  * @return			Read half-word.
+ * @ingroup csim
  */
 uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr) {
 	csim_core_inst_t *core = board->cores;
@@ -822,6 +929,7 @@ uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr) {
  * @param board		Current board.
  * @param addr		Address to read word from.
  * @return			Read word.
+ * @ingroup csim
  */
 uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr) {
 	csim_core_inst_t *core = board->cores;
@@ -834,7 +942,36 @@ uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr) {
  * @param board		Current board.
  * @param addr		Address to read long word from.
  * @return			Read long word.
+ * @ingroup csim
  */
 uint64_t csim_long_at(csim_board_t *board, csim_addr_t addr) {
 	assert(0 && "unsupported");
+}
+
+
+/**
+ * @typedef csim_confs_t;
+ * Array of strings to pass configuration to a component. The entries are grouped
+ * by pairs (key, value). The end is marked with a NULL key.
+ * @ingroup csim
+ */
+
+
+/**
+ * Parse a string as an unsigned integer supportin decimal form and
+ * "0x"-prefixed hexadecimal.
+ * @param str	String to convert.
+ * @param err	If not NULL, gets 0 for success or not 0 for failure.
+ * @ingroup csim
+ */
+uint32_t csim_parse_uint(const char *str, int *err) {
+	uint32_t val;
+	char *end;
+	if(str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
+		val = strtoul(str+2, &end, 16);
+	else
+		val = strtoul(str, &end, 10);
+	if(err)
+		*err = *end != '\0';
+	return val;
 }

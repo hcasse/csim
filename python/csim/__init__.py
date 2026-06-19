@@ -227,16 +227,20 @@ class Board:
 					raise BoardError(f"empty board in {board_path}")
 		except OSError as exn:
 			raise BoardError(str(exn))
-		board_name = get(desc, "name", "no name")
 
 		# build the board
-		self.board = libcsim.new_board(board_name)
+		conf = []
+		for (key, val) in desc.items():
+			conf.append(key)
+			conf.append(str(val))
+		self.board = libcsim.new_board_ext(conf)
 		self.core = None
-		self.clock = get(desc, "clock", 1000)
-		self.quantum = get(desc, "quantum", 100)
-		if self.clock // self.quantum != self.clock / self.quantum:
-			warn("quantum (%d) must be a divider of master clock(%dHz)" % (self.quantum, self.clock))
-		libcsim.set_master_clock(self.board, self.clock)
+		self.clock = None
+		#self.clock = get(desc, "clock", 1000)
+		#self.quantum = get(desc, "quantum", 100)
+		#if self.clock // self.quantum != self.clock / self.quantum:
+		#	warn("quantum (%d) must be a divider of master clock(%dHz)" % (self.quantum, self.clock))
+		#libcsim.set_master_clock(self.board, self.clock)
 
 		# build the components
 		comps = obtain(desc, "components", "no component defined")
@@ -246,8 +250,12 @@ class Board:
 			if comp is None:
 				raise BoardError("cannot find component %s" % type)
 			info = libcsim.component_info(comp)
-			base = int(get(cdesc, "base", "0"), 16)
-			inst = libcsim.new_component(self.board, comp, name, base)
+			#base = int(get(cdesc, "base", "0"), 16)
+			conf = []
+			for (key, val) in cdesc.items():
+				conf.append(key)
+				conf.append(str(val))
+			inst = libcsim.new_component_ext(self.board, comp, conf)
 			ctype = info[1]
 			obj = COMPONENTS[ctype](self, name, comp, inst, cdesc)
 			self.components.append(obj)
@@ -278,6 +286,9 @@ class Board:
 	def run(self, time = 10):
 		libcsim.run(self.board, time)
 
+	def step(self):
+		libcsim.step(self.board)
+
 	def get_core(self):
 		"""Get the execution core."""
 		return self.core
@@ -285,6 +296,12 @@ class Board:
 	def get_components(self):
 		"""Get the components of the core."""
 		return self.components
+
+	def get_clock(self):
+		"""Get the clock of the board."""
+		if self.clock is None:
+			self.clock = libcsim.get_clock(self.board)
+		return self.clock
 
 	def load_bin(self, path):
 		"""Load the binary. Raise BoardError in case of error."""

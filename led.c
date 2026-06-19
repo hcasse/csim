@@ -52,7 +52,7 @@ csim_port_t led_ports[] = {
 void led_write(csim_inst_t *inst, int n, csim_word_t v) {
 	led_inst_t *i = (led_inst_t *)inst;
 	i->state = v;
-	inst->board->log(inst->board, CSIM_INFO, "led_write(%d, %d)", n, v);
+	inst->board->log(inst->board, CSIM_DEBUG, "led_write(%d, %d)", n, v);
 }
 
 /**
@@ -60,12 +60,12 @@ void led_write(csim_inst_t *inst, int n, csim_word_t v) {
  */
 csim_word_t led_read(csim_inst_t *inst, int n) {
 	led_inst_t *i = (led_inst_t *)inst;
-	inst->board->log(inst->board, CSIM_INFO, "led_read(%d)", n);
+	inst->board->log(inst->board, CSIM_DEBUG, "led_read(%d)", n);
 	return i->state;
 }
 
 csim_reg_t led_regs[] = {
-	{ "R", 0, 4, 1, 1, 0, CSIM_INT, NULL, NULL, led_read, led_write, NULL, NULL }
+	{ "IN", 0, 4, 1, 1, 0, CSIM_INT, NULL, NULL, led_read, led_write, NULL, NULL }
 };
 
 /**
@@ -111,7 +111,8 @@ csim_iocomp_t led_component = {
 		sizeof(led_inst_t),
 		led_construct,
 		led_destruct,
-		led_reset
+		led_reset,
+		csim_default_update
 	},
 	led_display,
 	led_on_key,

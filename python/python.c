@@ -25,7 +25,26 @@ new_board(PyObject *self, PyObject *args) {
 	if(!PyArg_ParseTuple(args, "s", &name))
 		return NULL;
 	csim_board_t *board = csim_new_board(strdup(name));
-	board->level = CSIM_WARN;
+	RETURN_TPTR(csim_board_t, board);
+}
+
+static PyObject *
+new_board_ext(PyObject *self, PyObject *args) {
+	PyObject *oconf;
+	if(!PyArg_ParseTuple(args, "O", &oconf))
+		return NULL;
+	if (!PyList_Check(oconf))
+		return NULL;
+	Py_ssize_t size = PyList_Size(oconf);
+	const char *conf[size + 1];
+	for(Py_ssize_t i = 0; i < size; i++) {
+		PyObject *item = PyList_GetItem(oconf, i);
+		if(!PyUnicode_Check(item))
+			return NULL;
+		conf[i] = PyUnicode_AsUTF8(item);
+	}
+	conf[size] = NULL;
+	csim_board_t *board = csim_new_board_ext(conf);
 	RETURN_TPTR(csim_board_t, board);
 }
 
@@ -169,6 +188,30 @@ new_component(PyObject *self, PyObject *args) {
 }
 
 static PyObject *
+new_component_ext(PyObject *self, PyObject *args) {
+	PyObject *oboard;
+	PyObject *ocomp;
+	PyObject *oconf;
+	if(!PyArg_ParseTuple(args, "OOO", &oboard, &ocomp, &oconf))
+		return NULL;
+	csim_board_t *board = TPTR(csim_board_t, oboard);
+	csim_component_t *comp = TPTR(csim_component_t, ocomp);
+	if (!PyList_Check(oconf))
+		return NULL;
+	Py_ssize_t size = PyList_Size(oconf);
+	const char *conf[size + 1];
+	for(Py_ssize_t i = 0; i < size; i++) {
+		PyObject *item = PyList_GetItem(oconf, i);
+		if(!PyUnicode_Check(item))
+			return NULL;
+		conf[i] = PyUnicode_AsUTF8(item);
+	}
+	conf[size] = NULL;
+	RETURN_TPTR(csim_inst_t,
+		csim_new_component_ext(board, comp, conf));
+}
+
+static PyObject *
 get_state(PyObject *self, PyObject *args) {
 	PyObject *oinst;
 	int size;
@@ -242,6 +285,14 @@ set_master_clock(PyObject *self, PyObject *args) {
 		return NULL;
 	TPTR(csim_board_t, oboard)->clock = clock;
 	RETURN_NONE;
+}
+
+static PyObject *
+get_clock(PyObject *self, PyObject *args) {
+	PyObject *oboard;
+	if(!PyArg_ParseTuple(args, "O", &oboard))
+		return NULL;
+	RETURN_LONG(TPTR(csim_board_t, oboard)->clock);
 }
 
 static PyObject *
@@ -408,6 +459,9 @@ static PyMethodDef csim_methods[] = {
 	FUN(long_at, "(board, address) Get the long word in the board at the passed address."),
 	FUN(get_date, "(board) Get the date of the board."),
 	FUN(register_make_name, "(component, register, index) Build the name for register at index."),
+	FUN(new_board_ext, "(configuration: string list) Build a board with  configuration."),
+	FUN(new_component_ext, "(board, component, configuration: string list) build a new component instance."),
+	FUN(get_clock, "(board) get the master clock of the board"),
 	{NULL, NULL, 0, NULL}
 };
 

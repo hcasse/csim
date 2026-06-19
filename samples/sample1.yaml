@@ -1,4 +1,5 @@
 name: sample1
+clock: 100
 components:
   CORE:
     type: arm
