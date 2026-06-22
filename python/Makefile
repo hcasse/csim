@@ -25,7 +25,7 @@ all: $(MODULE)$(LIBEXT)
 $(MODULE)$(LIBEXT): python.c ../csim.c
 	gcc $(CFLAGS) -shared -o $@ $< $(LDFLAGS)
 
-$(MODULE)$(LIBEXT): ../libcsim.a
+$(MODULE)$(LIBEXT): ../*.c
 
 clean:
 	-rm -rf $(MODULE)$(LIBEXT)

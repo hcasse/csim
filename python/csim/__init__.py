@@ -146,7 +146,7 @@ class Register:
 
 
 class Component:
-	"""Represents a simple component."""
+	"""Represents a simple component instance."""
 
 	def __init__(self, board, name, comp, inst, atts):
 		self.board = board
@@ -197,6 +197,7 @@ class Core(Component):
 		"""Disassemble the given address."""
 		return libcsim.core_disasm(self.core, addr)
 
+
 class IOComponent(Component):
 	"""Represents an IO component."""
 
@@ -209,9 +210,10 @@ class IOComponent(Component):
 		in the canvas. The default implementation does nothing."""
 		pass
 
-	def update(self):
-		"""Called each time the display needs to be updated for the
-		current component."""
+	def update(self, ress, state):
+		"""Called each time the display needs to be updated for the provided
+		ressource with the provided state. The default implementation does
+		nothing."""
 		pass
 
 COMPONENTS = {
@@ -227,6 +229,7 @@ class Board:
 		self.bin_path = bin_path
 		self.components = []
 		self.io_components = []
+		self.map = {}
 
 		# load the board
 		try:
@@ -245,11 +248,6 @@ class Board:
 		self.board = libcsim.new_board_ext(conf)
 		self.core = None
 		self.clock = None
-		#self.clock = get(desc, "clock", 1000)
-		#self.quantum = get(desc, "quantum", 100)
-		#if self.clock // self.quantum != self.clock / self.quantum:
-		#	warn("quantum (%d) must be a divider of master clock(%dHz)" % (self.quantum, self.clock))
-		#libcsim.set_master_clock(self.board, self.clock)
 
 		# build the components
 		comps = obtain(desc, "components", "no component defined")
@@ -268,6 +266,8 @@ class Board:
 			ctype = info[1]
 			obj = COMPONENTS[ctype](self, name, comp, inst, cdesc)
 			self.components.append(obj)
+			id = libcsim.inst_id(inst)
+			self.map[id] = obj
 			if isinstance(obj, Core):
 				if self.core != None:
 					raise BoardError("several cores defined!")
@@ -333,11 +333,6 @@ class Board:
 			raise BoardError("cannot find port '%s' in '%s'" % (both[1], both[0]))
 		return (found_inst.inst, port)
 
-	def update(self):
-		"""Called each the IO components needs to be updated."""
-		for comp in self.io_components:
-			comp.update()
-
 	def reset(self):
 		"""Reset the state of the simulator."""
 		csim.reset_board(self.board)
@@ -376,3 +371,9 @@ class Board:
 	def set_log_level(self, level):
 		"""Set the log level (one of CSIM_DEBUG, CSIM_INFO, etc)."""
 		libcsim.set_log_level(self.board, level)
+
+	def update_input(self):
+		"""Update input components."""
+		states = libcsim.flush_iostates(self.board)
+		for (id, ress, state) in states:
+			self.map[id].update(ress, state)

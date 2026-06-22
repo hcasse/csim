@@ -32,6 +32,11 @@
 
 #define CSIM_DEFAULT_CLOCK	1000
 
+
+///
+static csim_iostate_t iostate_end = {NULL, { 0, 0, 0 } };
+
+
 /**
  * @defgroup csim Simulation Module
  *
@@ -354,6 +359,9 @@ csim_board_t *csim_new_board_ext(csim_confs_t conf) {
 	board->evts = NULL;
 	board->level = CSIM_INFO;
 	board->pending = NULL;
+	board->iostates_head = &iostate_end;
+	board->iostates_count = 0;
+	board->comp_count = 0;
 	board->log = csim_log;
 	memset(board->ios, 0, sizeof(csim_io_t *) * CSIM_IO_SIZE);
 
@@ -522,6 +530,9 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 		i->ports[j].inst = i;
 		i->ports[j].link = NULL;
 	}
+	i->id = ++board->comp_count;
+
+	/* determine number in the component instances */
 	i->number = 0;
 	for(csim_inst_t *p = board->insts; p != NULL; p = p->next)
 		if(p->comp == comp)
@@ -578,11 +589,11 @@ void csim_delete_component(csim_inst_t *inst) {
 
 /**
  * Record a component ready to be updated.
- * @param board		Current board.
  * @param inst		Instance to wake up.
  */
-void csim_wakeup(csim_board_t *board, csim_inst_t *inst) {
+void csim_wakeup(csim_inst_t *inst) {
 	if(!(inst->flags & CSIM_PENDING)) {
+		csim_board_t *board = inst->board;
 		inst->flags |= CSIM_PENDING;
 		inst->next_pending = board->pending;
 		board->pending = inst;
@@ -831,6 +842,7 @@ static void update_components(csim_board_t *board) {
 		csim_inst_t *inst = board->pending;
 		board->pending = inst->next_pending;
 		inst->flags &= ~CSIM_PENDING;
+		inst->comp->update(inst);
 	}
 }
 
@@ -974,4 +986,54 @@ uint32_t csim_parse_uint(const char *str, int *err) {
 	if(err)
 		*err = *end != '\0';
 	return val;
+}
+
+
+/**
+ * Default function for port update to wakeup the component.
+ * Just call @ref csim_wakeup() for the component owning the port.
+ */
+void csim_port_wakeup(csim_port_inst_t *inst, csim_value_type_t type, csim_value_t val) {
+	csim_wakeup(inst->inst);
+}
+
+
+/**
+ * Default function to wake up the component when an IO register is written.
+ */
+void csim_write_wakeup(csim_inst_t *inst, int num, csim_word_t val) {
+	csim_wakeup(inst);
+}
+
+
+/**
+ * Record the latest version of the IO state.
+ * @param inst		Instance of component recording the state.
+ * @param state		Recorded IO state.
+ */
+void csim_record_iostate(csim_inst_t *inst, csim_iostate_t *state) {
+	if(state->next)
+		return;
+	csim_board_t *board = inst->board;
+	board->iostates_count++;
+	state->next = board->iostates_head;
+	board->iostates_head = state;
+}
+
+
+/**
+ * Record all IO states for processing.
+ * @param board		Current board.
+ * @param infos		Buffer to store IO state information in
+ * 					(must be of size board->iostates_count).
+ */
+void csim_flush_iostates(csim_board_t *board, csim_ioinfo_t infos[]) {
+	int i = 0;
+	for(csim_iostate_t *state = board->iostates_head, *next; state != &iostate_end; state = next) {
+		next = state->next;
+		state->next = NULL;
+		infos[i++] = state->info;
+	}
+	board->iostates_head = &iostate_end;
+	board->iostates_count = 0;
 }

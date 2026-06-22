@@ -411,6 +411,14 @@ get_date(PyObject *self, PyObject *args) {
 }
 
 static PyObject *
+inst_id(PyObject *self, PyObject *args) {
+	PyObject *oinst;
+	if(!PyArg_ParseTuple(args, "O", &oinst))
+		return NULL;
+	RETURN_ULONG(TPTR(csim_inst_t, oinst)->id);
+}
+
+static PyObject *
 register_make_name(PyObject *self, PyObject *args) {
 	PyObject *oinst;
 	PyObject *oreg;
@@ -422,6 +430,26 @@ register_make_name(PyObject *self, PyObject *args) {
 	char buf[256];
 	reg->make_name(inst, index, buf, 256);
 	RETURN_STR(buf);
+}
+
+static PyObject *
+flush_iostates(PyObject *self, PyObject *args) {
+	PyObject *oboard;
+	if(!PyArg_ParseTuple(args, "O", &oboard))
+		return NULL;
+	csim_board_t *board = TPTR(csim_board_t, oboard);
+	int count = board->iostates_count;
+	csim_ioinfo_t infos[count];
+	csim_flush_iostates(board, infos);
+	PyObject *list = PyList_New(count);
+	for(int i = 0; i < count; i++) {
+		PyObject *tuple = PyTuple_New(3);
+		PyTuple_SetItem(tuple, 0, PyLong_FromLong(infos[i].id));
+		PyTuple_SetItem(tuple, 1, PyLong_FromLong(infos[i].ress));
+		PyTuple_SetItem(tuple, 2, PyLong_FromLong(infos[i].state));
+		PyList_SetItem(list, i, tuple);
+	}
+	return list;
 }
 
 static PyMethodDef csim_methods[] = {
@@ -438,7 +466,7 @@ static PyMethodDef csim_methods[] = {
 	FUN(core_pc, "(core instance) Get the current PC address of the given core instance."),
 	FUN(core_disasm, "(core instance, address) Return the disassembly of the instruction at the given address."),
 	FUN(find_component, "(name) Look for a component by its name. Return component or None."),
-	FUN(component_info, "(component) Get information about the component as the tuple (name, type, version, register count, port count, instance size)."),
+	FUN(component_info, "(component) Get information about the component as the tuple (name, type, version, register count, port count, instance size,)."),
 	FUN(new_component, "(board, component, name, base address) Build a new instance of the component."),
 	FUN(get_state, "(instance, size) Get state from an IO component. The result is a list of size integers."),
 	FUN(set_state, "(instance, state) Set the state of an IO component instance. state is a list of integers."),
@@ -461,7 +489,9 @@ static PyMethodDef csim_methods[] = {
 	FUN(register_make_name, "(component, register, index) Build the name for register at index."),
 	FUN(new_board_ext, "(configuration: string list) Build a board with  configuration."),
 	FUN(new_component_ext, "(board, component, configuration: string list) build a new component instance."),
-	FUN(get_clock, "(board) get the master clock of the board"),
+	FUN(get_clock, "(board) get the master clock of the board."),
+	FUN(flush_iostates, "(board): list of (number: int, id: int, state: int) Get the IO states for updating."),
+	FUN(inst_id, "(instance) Get the identifier of the instance."),
 	{NULL, NULL, 0, NULL}
 };
 

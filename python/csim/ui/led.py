@@ -59,7 +59,6 @@ class Component(csim.IOComponent):
 		self.shape = LED(self.x, self.y, self.color)
 		canvas.record(self.shape)
 
-	def update(self):
-		res = libcsim.get_state(self.inst, 1)
-		if res[0] != self.shape.state:
+	def update(self, ress, state):
+		if state != self.shape.state:
 			self.shape.invert()

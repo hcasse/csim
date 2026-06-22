@@ -92,6 +92,8 @@ typedef struct csim_iocomp_t csim_iocomp_t;
 typedef struct csim_iocomp_inst_t csim_iocomp_inst_t;
 typedef struct csim_port_inst_t csim_port_inst_t;
 typedef union csim_value_t csim_value_t;
+typedef struct csim_iostate_t csim_iostate_t;
+typedef struct csim_ioinfo_t csim_ioinfo_t;
 
 struct csim_reg_t {
 	const char *name;
@@ -171,6 +173,7 @@ struct csim_inst_t {
 	const char *name;
 	uint16_t number;
 	uint16_t flags;
+	uint32_t id;
 	csim_board_t *board;
 	csim_port_inst_t *ports;
 };
@@ -216,6 +219,16 @@ struct csim_iocomp_inst_t {
 	struct csim_iocomp_inst_t *next;
 };
 
+struct csim_ioinfo_t {
+	uint32_t id;
+	uint32_t ress;
+	uint32_t state;
+};
+
+struct csim_iostate_t {
+	csim_iostate_t *next;
+	csim_ioinfo_t info;
+};
 
 /* board */
 #ifndef CSIM_IO_SHIFT
@@ -243,6 +256,9 @@ struct csim_board_t {
 	csim_evt_t *evts;
 	csim_level_t level;
 	csim_inst_t *pending;
+	csim_iostate_t *iostates_head;
+	int iostates_count;
+	uint32_t comp_count;
 	void (*log)(csim_board_t *board, csim_level_t level, const char *msg, ...);
 	csim_io_t *ios[CSIM_IO_SIZE];
 };
@@ -262,7 +278,6 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 void csim_delete_component(csim_inst_t *inst);
 csim_inst_t *csim_find_instance(csim_board_t *board, const char *name);
 csim_port_t*csim_find_port(csim_component_t *comp, const char *name);
-void csim_wakeup(csim_board_t *board, csim_inst_t *inst);
 void csim_default_update(csim_inst_t *inst);
 
 void csim_log(csim_board_t *board, csim_level_t level, const char *msg, ...);
@@ -280,6 +295,10 @@ void csim_step(csim_board_t *board);
 
 void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state);
 
+void csim_wakeup(csim_inst_t *inst);
+void csim_port_wakeup(csim_port_inst_t *inst, csim_value_type_t type, csim_value_t val);
+void csim_write_wakeup(csim_inst_t *inst, int num, csim_word_t val);
+
 uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr);
 uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr);
 uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr);
@@ -288,6 +307,9 @@ uint64_t csim_long_at(csim_board_t *board, csim_addr_t addr);
 csim_word_t csim_read_io(csim_board_t *board, csim_addr_t addr, int size);
 void csim_write_io(csim_board_t *board, csim_addr_t addr, int size, csim_word_t word);
 void csim_on_io(csim_addr_t addr, int size, void *data, int access, void *cdata);
+
+void csim_record_iostate(csim_inst_t *inst, csim_iostate_t *state);
+void csim_flush_iostates(csim_board_t *board, csim_ioinfo_t infos[]);
 
 uint32_t csim_parse_uint(const char *str, int *err);
 

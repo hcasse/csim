@@ -68,8 +68,6 @@ class MyPage(Page):
 		self.show_current()
 		self.timer = Timer(self, trigger=self.run_once, period=1000/RUN_FREQ)
 		self.quantum = board.get_clock() // RUN_FREQ
-		print(f"DEBUG: clock = {board.get_clock()}")
-		print(f"DEBUG: quantum = {self.quantum}")
 
 	def show_current(self):
 		addr = self.board.core.pc()
@@ -77,6 +75,7 @@ class MyPage(Page):
 		text = self.board.core.disasm(addr)
 		self.inst.set_text(text)
 		self.date.set_text(f"{self.board.get_date():9}")
+		self.board.update_input()
 
 	def run(self):
 		self.timer.start()
@@ -97,7 +96,6 @@ class MyPage(Page):
 	def run_once(self):
 		self.board.run(self.quantum)
 		self.show_current()
-		self.board.update()
 
 	def reset(self):
 		self.board.reset()
