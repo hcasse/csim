@@ -18,12 +18,14 @@ class Component(csim.IOComponent):
 	def on_push(self):
 		self.canvas.get_page().set_direct_attr(
 			"%s-push" % self.content.get_id(), "fill", "#888888")
-		libcsim.set_state(self.inst, [1])
+		#libcsim.set_state(self.inst, [1])
+		self.do_input(1, 1)
 
 	def on_release(self):
 		self.canvas.get_page().set_direct_attr(
 			"%s-push" % self.content.get_id(), "fill", "#000000")
-		libcsim.set_state(self.inst, [0])
+		#libcsim.set_state(self.inst, [0])
+		self.do_input(1, 0)
 
 	def install(self, canvas):
 		self.canvas = canvas

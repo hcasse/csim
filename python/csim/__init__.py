@@ -154,10 +154,16 @@ class Component:
 		self.comp = comp
 		self.inst = inst
 		self.registers = None
+		self.id = None
 
 	def get_name(self):
 		"""Get the name of the component."""
 		return self.name
+
+	def get_id(self):
+		if self.id is None:
+			self.id = libcsim.inst_id(self.inst)
+		return self.id
 
 	def get_registers(self):
 		"""Get registers of the component. List of Register objects."""
@@ -215,6 +221,11 @@ class IOComponent(Component):
 		ressource with the provided state. The default implementation does
 		nothing."""
 		pass
+
+	def do_input(self, ress, state):
+		"""Perform an input operation on the component."""
+		libcsim.do_input(self.board.board, self.get_id(), ress, state)
+
 
 COMPONENTS = {
 	CSIM_SIMPLE: Component,

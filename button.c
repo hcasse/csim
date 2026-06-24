@@ -75,6 +75,15 @@ void button_set_state(csim_iocomp_inst_t *inst, uint32_t *state) {
 	}
 }
 
+static void button_change(csim_iocomp_inst_t *inst_, csim_ioinfo_t *info) {
+	button_inst_t *inst = (button_inst_t *)inst_;
+	if(info->state != inst->pushed) {
+		inst->pushed = info->state;
+		csim_send_digital(&inst->inst.inst, &button_ports[0], inst->pushed);
+	}
+}
+
+
 csim_iocomp_t button_component = {
 	{
 		"button",
@@ -93,7 +102,8 @@ csim_iocomp_t button_component = {
 	button_display,
 	button_on_key,
 	button_get_state,
-	button_set_state
+	button_set_state,
+	button_change
 };
 
 int button_get(csim_inst_t *inst) {

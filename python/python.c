@@ -452,6 +452,17 @@ flush_iostates(PyObject *self, PyObject *args) {
 	return list;
 }
 
+static PyObject *
+do_input(PyObject *self, PyObject *args) {
+	PyObject *oboard;
+	csim_ioinfo_t info;
+	if(!PyArg_ParseTuple(args, "Oiii", &oboard, &info.id, &info.ress, &info.state))
+		return NULL;
+	csim_do_input(TPTR(csim_board_t, oboard), &info);
+	RETURN_NONE;
+}
+
+
 static PyMethodDef csim_methods[] = {
 	FUN(new_board, "(name, memory) Create a new board."
 		"memory may be None. Return the board."),
@@ -492,6 +503,7 @@ static PyMethodDef csim_methods[] = {
 	FUN(get_clock, "(board) get the master clock of the board."),
 	FUN(flush_iostates, "(board): list of (number: int, id: int, state: int) Get the IO states for updating."),
 	FUN(inst_id, "(instance) Get the identifier of the instance."),
+	FUN(do_input, "(board, id, ressource, state) Perform an input as a state change."),
 	{NULL, NULL, 0, NULL}
 };
 

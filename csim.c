@@ -352,7 +352,9 @@ csim_board_t *csim_new_board_ext(csim_confs_t conf) {
 	if(board == NULL)
 		return NULL;
 	board->name = "no name";
-	board->insts = NULL;
+	board->inst_cap = 32;
+	board->inst_cnt = 0;
+	board->insts = (csim_inst_t **)malloc(sizeof(csim_inst_t *) * board->inst_cap);
 	board->cores = NULL;
 	board->iocomps = NULL;
 	board->date = 0;
@@ -361,7 +363,6 @@ csim_board_t *csim_new_board_ext(csim_confs_t conf) {
 	board->pending = NULL;
 	board->iostates_head = &iostate_end;
 	board->iostates_count = 0;
-	board->comp_count = 0;
 	board->log = csim_log;
 	memset(board->ios, 0, sizeof(csim_io_t *) * CSIM_IO_SIZE);
 
@@ -401,12 +402,8 @@ csim_board_t *csim_new_board_ext(csim_confs_t conf) {
  */
 void csim_delete_board(csim_board_t *board) {
 
-	csim_inst_t *i = board->insts;
-	while(i != NULL) {
-		csim_inst_t *next = i->next;
-		csim_delete_component(i);
-		i = next;
-	}
+	for(int i = 0; i < board->inst_cnt; i++)
+		csim_delete_component(board->insts[i]);
 
 	for(int i = 0; i < CSIM_IO_SIZE; i++) {
 		csim_io_t *p = board->ios[i];
@@ -418,6 +415,7 @@ void csim_delete_board(csim_board_t *board) {
 	}
 
 	board->log(board, CSIM_INFO, "deleting board %s", board->name);
+	free(board->insts);
 	free(board);
 }
 
@@ -433,8 +431,8 @@ void csim_reset_board(csim_board_t *board) {
 	//csim_mem_reset(board->mem);
 
 	/* reset all component instances */
-	for(csim_inst_t *i = board->insts; i != NULL; i = i->next)
-		i->comp->reset(i);
+	for(int i = 0; i < board->inst_cnt; i++)
+		board->insts[i]->comp->reset(board->insts[i]);
 
 	/* reset time */
 	board->date = 0;
@@ -517,41 +515,45 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 
 	/* build the instance */
 	uint8_t *p = (uint8_t *)malloc(comp->size + comp->port_cnt * sizeof(csim_port_inst_t));
-	csim_inst_t *i = (csim_inst_t *)p;
-	i->next_pending = NULL;
-	i->flags = 0;
-	i->comp = comp;
-	i->name = name;
-	i->base = base;
-	i->board = board;
-	i->ports = (csim_port_inst_t *)(p + comp->size);
+	csim_inst_t *inst = (csim_inst_t *)p;
+	inst->next_pending = NULL;
+	inst->flags = 0;
+	inst->comp = comp;
+	inst->name = name;
+	inst->base = base;
+	inst->board = board;
+	inst->ports = (csim_port_inst_t *)(p + comp->size);
 	for(int j = 0; j < comp->port_cnt; j++) {
-		i->ports[j].port = &comp->ports[j];
-		i->ports[j].inst = i;
-		i->ports[j].link = NULL;
+		inst->ports[j].port = &comp->ports[j];
+		inst->ports[j].inst = inst;
+		inst->ports[j].link = NULL;
 	}
-	i->id = ++board->comp_count;
+	inst->id = board->inst_cnt;
 
 	/* determine number in the component instances */
-	i->number = 0;
-	for(csim_inst_t *p = board->insts; p != NULL; p = p->next)
-		if(p->comp == comp)
-			i->number++;
+	inst->number = 0;
+	for(int i = 0; i < board->inst_cnt; i++)
+		if(board->insts[i]->comp == comp)
+			inst->number++;
 
 	/* link to the board */
-	i->next = board->insts;
-	board->insts = i;
+	if(board->inst_cnt == board->inst_cap) {
+		board->inst_cap *= 2;
+		board->insts = (csim_inst_t **)realloc(board->insts, sizeof(csim_inst_t *) * board->inst_cap);
+	}
+	board->insts[board->inst_cnt] = inst;
+	board->inst_cnt++;
 
 	/* if core, record it in core list */
 	if(comp->type == CSIM_CORE) {
-		csim_core_inst_t *ci = (csim_core_inst_t *)i;
+		csim_core_inst_t *ci = (csim_core_inst_t *)inst;
 		ci->next = board->cores;
 		board->cores = ci;
 	}
 
 	/* If IO component, record it in the IO list. */
 	if(comp->type == CSIM_IO) {
-		csim_iocomp_inst_t *ioi = (csim_iocomp_inst_t *)i;
+		csim_iocomp_inst_t *ioi = (csim_iocomp_inst_t *)inst;
 		ioi->next = board->iocomps;
 		board->iocomps = ioi;
 	}
@@ -559,18 +561,17 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	/* call preparation of the instance */
 	if(CSIM_DEBUG >= board->level)
 		board->log(board, CSIM_INFO, "new instance %s of %s at %08x", name, comp->name, name);
-	comp->construct(i, confs);
+	comp->construct(inst, confs);
 
 	/* record the IO registers */
 	if(board->cores != NULL)
-		csim_record_regs(board, i);
+		csim_record_regs(board, inst);
 	else if(comp->type == CSIM_CORE) {
-		//board->mem = csim_core_memory((csim_core_inst_t *)i);
-		for(csim_inst_t *ui = board->insts; ui != NULL; ui = ui->next)
-			csim_record_regs(board, ui);
+		for(int i = 0; i < board->inst_cnt; i++)
+			csim_record_regs(board, board->insts[i]);
 	}
 
-	return i;
+	return inst;
 }
 
 
@@ -608,9 +609,9 @@ void csim_wakeup(csim_inst_t *inst) {
  * @return			Found instance or NULL.
  */
 csim_inst_t *csim_find_instance(csim_board_t *board, const char *name) {
-	for(csim_inst_t *i = board->insts; i != NULL; i = i->next)
-		if(strcmp(i->name, name) == 0)
-			return i;
+	for(int i = 0; i < board->inst_cnt; i++)
+		if(strcmp(board->insts[i]->name, name) == 0)
+			return board->insts[i];
 	return NULL;
 }
 
@@ -1036,4 +1037,28 @@ void csim_flush_iostates(csim_board_t *board, csim_ioinfo_t infos[]) {
 	}
 	board->iostates_head = &iostate_end;
 	board->iostates_count = 0;
+}
+
+
+/**
+ * Perform an input on the IO component identified in the info.
+ * @param board		Current board.
+ * @param
+ */
+void csim_do_input(csim_board_t *board, csim_ioinfo_t *info) {
+	assert(info->id < board->inst_cnt);
+	csim_iocomp_inst_t *inst = (csim_iocomp_inst_t *)board->insts[info->id];
+	assert(inst->inst.comp->type == CSIM_IO);
+	((csim_iocomp_t *)inst->inst.comp)->change(inst, info);
+}
+
+
+/**
+ * Default implementation for the change function of an IO component.
+ * @param inst	Instance supporting the change.
+ * @param info	Change information.
+ */
+void csim_default_change(csim_iocomp_inst_t *inst, csim_ioinfo_t *info) {
+	inst->inst.board->log(inst->inst.board, CSIM_ERROR, "%d:%s: unsupported change call with %d:%d",
+		inst->inst.id, inst->inst.name, info->ress, info->state);
 }

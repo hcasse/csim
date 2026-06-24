@@ -212,6 +212,7 @@ struct csim_iocomp_t {
 	void (*on_key)(char key, csim_iocomp_inst_t *inst);
 	void (*get_state)(csim_iocomp_inst_t *inst, uint32_t *state);
 	void (*set_state)(csim_iocomp_inst_t *inst, uint32_t *state);
+	void (*change)(csim_iocomp_inst_t *inst, csim_ioinfo_t *state);
 };
 
 struct csim_iocomp_inst_t {
@@ -248,7 +249,8 @@ typedef struct csim_io_t {
 
 struct csim_board_t {
 	const char *name;
-	csim_inst_t *insts;
+	csim_inst_t **insts;
+	uint32_t inst_cnt, inst_cap;
 	csim_core_inst_t *cores;
 	csim_iocomp_inst_t *iocomps;
 	csim_clock_t clock;
@@ -258,7 +260,6 @@ struct csim_board_t {
 	csim_inst_t *pending;
 	csim_iostate_t *iostates_head;
 	int iostates_count;
-	uint32_t comp_count;
 	void (*log)(csim_board_t *board, csim_level_t level, const char *msg, ...);
 	csim_io_t *ios[CSIM_IO_SIZE];
 };
@@ -278,7 +279,9 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 void csim_delete_component(csim_inst_t *inst);
 csim_inst_t *csim_find_instance(csim_board_t *board, const char *name);
 csim_port_t*csim_find_port(csim_component_t *comp, const char *name);
+
 void csim_default_update(csim_inst_t *inst);
+void csim_default_change(csim_iocomp_inst_t *inst, csim_ioinfo_t *state);
 
 void csim_log(csim_board_t *board, csim_level_t level, const char *msg, ...);
 
@@ -310,6 +313,7 @@ void csim_on_io(csim_addr_t addr, int size, void *data, int access, void *cdata)
 
 void csim_record_iostate(csim_inst_t *inst, csim_iostate_t *state);
 void csim_flush_iostates(csim_board_t *board, csim_ioinfo_t infos[]);
+void csim_do_input(csim_board_t *board, csim_ioinfo_t *info);
 
 uint32_t csim_parse_uint(const char *str, int *err);
 

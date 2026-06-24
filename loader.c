@@ -80,9 +80,9 @@ yaml_next_t scan_port(loader_t *loader, const char *val, csim_inst_t **inst, csi
     *p = '\0';
 
     // find instance
-    for (csim_inst_t *i = loader->board->insts; i != NULL; i = i->next)
-        if (strcmp(i->name, buf) == 0) {
-            *inst = i;
+    for (int i = 0; i < loader->board->inst_cnt; i++)
+        if (strcmp(loader->board->insts[i]->name, buf) == 0) {
+            *inst = loader->board->insts[i];
             break;
         }
     if (*inst == NULL) {
