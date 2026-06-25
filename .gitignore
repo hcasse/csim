@@ -10,6 +10,7 @@ stm32/*.h
 *.cmi
 *.cma
 *.mli
+*.dis
 gliss/irg/parser.ml
 gliss/irg/lexer.ml
 gliss/irg/config.ml

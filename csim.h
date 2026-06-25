@@ -182,7 +182,7 @@ struct csim_inst_t {
 /* core component */
 struct csim_core_t {
 	csim_component_t comp;
-	void (*step)(csim_core_inst_t *inst);
+	int (*step)(csim_core_inst_t *inst);
 	int (*load)(csim_core_inst_t *inst, const char *path);
 	csim_addr_t (*pc)(csim_core_inst_t *inst);
 	void (*disasm)(csim_core_inst_t *inst, csim_addr_t addr, char buf[]);
@@ -197,6 +197,8 @@ struct csim_core_t {
 	void (*store_byte)(csim_core_inst_t *inst, csim_addr_t addr, uint8_t val);
 	void (*store_half)(csim_core_inst_t *inst, csim_addr_t addr, uint16_t val);
 	void (*store_word)(csim_core_inst_t *inst, csim_addr_t addr, uint32_t val);
+	void (*set_break)(csim_core_inst_t *inst, csim_addr_t addr);
+	void (*clear_break)(csim_core_inst_t *inst, csim_addr_t addr);
 };
 
 struct csim_core_inst_t {
@@ -293,7 +295,7 @@ void csim_send_digital(csim_inst_t *inst, csim_port_t *port, int digit);
 void csim_record_event(csim_board_t *board, csim_evt_t *evt);
 void csim_cancel_event(csim_board_t *board, csim_evt_t *evt);
 
-void csim_run(csim_board_t *board, csim_time_t time);
+int csim_run(csim_board_t *board, csim_time_t time);
 void csim_step(csim_board_t *board);
 
 void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state);

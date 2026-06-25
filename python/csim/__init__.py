@@ -204,6 +204,15 @@ class Core(Component):
 		return libcsim.core_disasm(self.core, addr)
 
 
+	def set_break(self, addr):
+		"""Set a break-point at provided address."""
+		libcsim.set_break(self.core, addr)
+
+	def clear_break(self, addr):
+		"""Clear a break-point at provided address."""
+		libcsim.clear_break(self.core, addr)
+
+
 class IOComponent(Component):
 	"""Represents an IO component."""
 
@@ -304,7 +313,7 @@ class Board:
 			self.load_bin(bin_path)
 
 	def run(self, time = 10):
-		libcsim.run(self.board, time)
+		return libcsim.run(self.board, time)
 
 	def step(self):
 		libcsim.step(self.board)

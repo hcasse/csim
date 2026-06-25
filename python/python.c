@@ -72,8 +72,9 @@ run(PyObject *self, PyObject *args) {
 	uint64_t time;
 	if(!PyArg_ParseTuple(args, "OK", &board, &time))
 		return NULL;
-	csim_run(TPTR(csim_board_t, board), time);
-	RETURN_NONE;
+	int res = csim_run(TPTR(csim_board_t, board), time);
+	printf("DEBUG: inter: res = %d\n", res);
+	RETURN_INT(res);
 }
 
 static PyObject *
@@ -462,6 +463,27 @@ do_input(PyObject *self, PyObject *args) {
 	RETURN_NONE;
 }
 
+static PyObject *
+set_break(PyObject *self, PyObject *args) {
+	PyObject *ocore;
+	csim_addr_t addr;
+	if(!PyArg_ParseTuple(args, "OI", &ocore, &addr))
+		return NULL;
+	csim_core_inst_t *core = TPTR(csim_core_inst_t, ocore);
+	((csim_core_t *)core->inst.comp)->set_break(core, addr);
+	RETURN_NONE;
+}
+
+static PyObject *
+clear_break(PyObject *self, PyObject *args) {
+	PyObject *ocore;
+	csim_addr_t addr;
+	if(!PyArg_ParseTuple(args, "OI", &ocore, &addr))
+		return NULL;
+	csim_core_inst_t *core = TPTR(csim_core_inst_t, ocore);
+	((csim_core_t *)core->inst.comp)->clear_break(core, addr);
+	RETURN_NONE;
+}
 
 static PyMethodDef csim_methods[] = {
 	FUN(new_board, "(name, memory) Create a new board."
@@ -504,6 +526,8 @@ static PyMethodDef csim_methods[] = {
 	FUN(flush_iostates, "(board): list of (number: int, id: int, state: int) Get the IO states for updating."),
 	FUN(inst_id, "(instance) Get the identifier of the instance."),
 	FUN(do_input, "(board, id, ressource, state) Perform an input as a state change."),
+	FUN(set_break, "(core, address) Set a breakpoint."),
+	FUN(clear_break, "(core, address) Clear a breakpoint."),
 	{NULL, NULL, 0, NULL}
 };
 

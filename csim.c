@@ -852,18 +852,25 @@ static void update_components(csim_board_t *board) {
  * Simulate for the given amount of time.
  * @param board		Board to simulate in.
  * @param time		Time in cycle (cycle duration depends on the board clock).
+ * @return			0 if the execution is successful, 1 if the execution encountered a break.
  * @ingroup csim
  */
-void csim_run(csim_board_t *board, csim_time_t time) {
+int csim_run(csim_board_t *board, csim_time_t time) {
 	csim_date_t end = board->date + time;
-	while(board->date < end) {
+	int at_break = 0;
+	while(board->date < end && !at_break) {
 		csim_log(board, CSIM_DEBUG, "next");
 		consume_events(board);
-		for(csim_core_inst_t *core = board->cores; core; core = core->next)
-			((csim_core_t *)core->inst.comp)->step(core);
+		for(csim_core_inst_t *core = board->cores; core; core = core->next) {
+			int res = ((csim_core_t *)core->inst.comp)->step(core);
+			at_break |= res;
+			printf("DEBUG: run %d -> %d\n", res, at_break);
+		}
 		update_components(board);
 		board->date++;
 	}
+	printf("DEBUG: at_break = %d\n", at_break);
+	return at_break;
 }
 
 /**

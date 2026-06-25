@@ -20,6 +20,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "csim.h"
 
@@ -28,6 +29,7 @@
 #include <arm/mem.h>
 
 #define CSIM_PAGE_SIZE	4096
+#define CSIM_BREAK_INIT	3
 #include "arm_core.h"
 
 
@@ -40,9 +42,11 @@ typedef struct arm_core_inst_t {
 	arm_memory_t *mem;
 	arm_state_t *state;
 	arm_sim_t *sim;
+	csim_addr_t *breaks;
+	uint16_t break_mask;
+	uint16_t break_cnt;
 } arm_core_inst_t;
 
-//static csim_reg_t regs[] = {};
 static csim_port_t ports[] = {};
 
 static void construct(csim_inst_t *inst, csim_confs_t confs) {
@@ -51,7 +55,101 @@ static void construct(csim_inst_t *inst, csim_confs_t confs) {
 	i->state = arm_new_state(i->pf);
 	i->sim = arm_new_sim(i->state, 0, 0);
 	i->mem = arm_get_memory(i->pf, ARM_MAIN_MEMORY);
+	i->break_mask = (1 << CSIM_BREAK_INIT) - 1;
+	i->breaks = (csim_addr_t *)malloc(sizeof(csim_addr_t) * (i->break_mask + 1));
+	memset(i->breaks, 0, sizeof(csim_addr_t) * (i->break_mask + 1));
+	i->break_cnt = 0;
+}
 
+static inline uint32_t hash(csim_addr_t addr) {
+	return (addr >> 3);
+}
+
+static inline int at_break(arm_core_inst_t *core, csim_addr_t addr) {
+	int i = hash(addr) & core->break_mask;
+	printf("DEBUG: breaks[%d] = %08x ~ %08x\n", i, core->breaks[i], addr);
+	if(!core->breaks[i])
+		return 0;
+	else if(core->breaks[i] == addr) {
+		printf("DEBUG: found!\n");
+		return 1;
+	}
+	else {
+		for(int j = (i + 1) & core->break_mask; j != i; j = (j + 1) & core->break_mask)
+			if(!core->breaks[j])
+				return 0;
+			else if(core->breaks[j] == addr)
+				return 1;
+	}
+	return 0;
+}
+
+static void add_break(arm_core_inst_t *core, csim_addr_t addr) {
+	int i = hash(addr);
+	if(!core->breaks[i])
+		core->breaks[i] = addr;
+	else
+		for(int j = (i + 1) & core->break_mask; j != i; j = (j + 1) & core->break_mask)
+			if(!core->breaks[j]) {
+				core->breaks[j] = addr;
+				break;
+			}
+	core->break_cnt++;
+}
+
+static void clear_break(csim_core_inst_t *inst, csim_addr_t addr) {
+	arm_core_inst_t *core = (arm_core_inst_t *)inst;
+
+	// save breaks
+	int cnt = core->break_cnt - 1;
+	csim_addr_t saved[cnt];
+	for(int i = 0, j = 1; i < core->break_mask + 1; i++)
+		if(core->breaks[i] && core->breaks[i] != addr)
+			saved[j++] = core->breaks[i];
+
+	// rebuild table
+	core->break_mask = (core->break_mask << 1) + 1;
+	core->breaks = (csim_addr_t *)calloc(sizeof(csim_addr_t),core->break_mask + 1);
+	core->break_cnt = 0;
+	for(int i = 0; i < cnt; i++)
+		add_break(core, saved[i]);
+
+}
+
+static void set_break(csim_core_inst_t *inst, csim_addr_t addr) {
+	arm_core_inst_t *core = (arm_core_inst_t *)inst;
+	int i = hash(addr) & core->break_mask;
+	printf("DEBUG: set_break(%08x)\n", addr);
+
+	// place free
+	if(!core->breaks[i]) {
+		core->breaks[i] = addr;
+		core->break_cnt++;
+		printf("DEBUG: breaks[%d] = %08x\n", i, addr);
+	}
+
+	// place available
+	else if(core->break_cnt < core->break_mask + 1)
+		add_break(core, addr);
+
+	// more complex adding
+	else {
+
+		// save break for restructuration
+		int cnt = core->break_cnt + 1;
+		csim_addr_t saved[cnt];
+		for(int i = 0, j = 1; i < core->break_mask + 1; i++)
+			if(core->breaks[i])
+				saved[j++] = core->breaks[i];
+		saved[cnt - 1] = addr;
+
+		// rebuild table
+		core->break_mask = (core->break_mask << 1) + 1;
+		core->breaks = (csim_addr_t *)calloc(sizeof(csim_addr_t),core->break_mask + 1);
+		core->break_cnt = 0;
+		for(int i = 0; i < cnt; i++)
+			add_break(core, saved[i]);
+	}
 }
 
 static void destruct(csim_inst_t *inst) {
@@ -65,9 +163,10 @@ static void reset(csim_inst_t *inst) {
 	arm_reset_state(i->state);
 }
 
-static void csim_arm_step(csim_core_inst_t *_inst) {
+static int csim_arm_step(csim_core_inst_t *_inst) {
 	arm_core_inst_t *inst = (arm_core_inst_t *)_inst;
 	arm_step(inst->sim);
+	return at_break(inst, arm_next_addr(inst->sim));
 }
 
 static int load(csim_core_inst_t *_inst, const char *path) {
@@ -266,5 +365,7 @@ csim_core_t arm_component = {
 	arm_load_word,
 	arm_store_byte,
 	arm_store_half,
-	arm_store_word
+	arm_store_word,
+	set_break,
+	clear_break
 };
