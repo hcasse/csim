@@ -80,6 +80,7 @@ loader.o: csim.h yaml.h
 arm_core.o: csim.h
 led.o: csim.h
 button.o: csim.h
+csim-run.o: csim.h
 
 FILES = \
 	csim/README.md \

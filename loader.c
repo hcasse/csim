@@ -115,12 +115,14 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
         if (strcmp(key, "name") == 0) {
             loader->name = strdup(val);
             return YAML_DONE;
-        } else if (strcmp(key, "components") == 0) {
+        }
+        else if (strcmp(key, "components") == 0) {
             loader->board = csim_new_board(loader->name);
             loader->board->level = CSIM_ERROR;
             loader->state = IN_COMPS;
             return YAML_MAP;
-        } else if (strcmp(key, "connect") == 0) {
+        }
+        else if (strcmp(key, "connect") == 0) {
             loader->state = IN_CONNECT;
             return YAML_LIST;
         }
@@ -129,16 +131,17 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
     case IN_COMPS:
         loader->name = strdup(key);
         loader->state = IN_COMP;
+		loader->confs[0] = "name";
+		loader->confs[1] = loader->name;
+		loader->conf_cnt = 2;
         return YAML_MAP;
 
     case IN_COMP:
         if (strcmp(key, "type") == 0) {
             loader->type = strdup(val);
             return YAML_DONE;
-        } else if (strcmp(key, "base") == 0) {
-            sscanf(val, "%x", &loader->base);
-            return YAML_DONE;
-        } else {
+        }
+        else {
             loader->confs[loader->conf_cnt++] = strdup(key);
             loader->confs[loader->conf_cnt++] = strdup(val);
             return YAML_DONE;
@@ -192,7 +195,7 @@ static void on_end(void *data) {
         /* buiild the component */
         loader->confs[loader->conf_cnt] = NULL;
         csim_new_component_ext(loader->board, type, loader->confs);
-        for (int i = 0; i < loader->conf_cnt; i++)
+        for (int i = 1; i < loader->conf_cnt; i++)
             free((char *)loader->confs[i]);
         loader->conf_cnt = 0;
 
@@ -233,18 +236,33 @@ static void on_end(void *data) {
  * @return			Created board or NULL if there is an error.
  */
 csim_board_t *csim_load_board(const char *path) {
+
+	// prepare handler data
 	loader_t loader = {
-		TOP, NULL, "anonymous", NULL, '\0', 0,
-		NULL, NULL, NULL, NULL,
-		0, { NULL }
+		TOP,			// state
+		NULL,			// board
+		"anonymous", 	// name
+		NULL,			// type
+		'\0', 			// key
+		0,				// base
+		NULL,			// from_inst
+		NULL,			// to_inst
+		NULL, 			// from_port
+		NULL,			// to_port
+		0, 				// conf_cnt
+		{ NULL }		// confs
 	};
+
+	// build and install handler
 	yaml_handler_t handler;
 	yaml_init_handler(&handler);
 	handler.on_key = on_key;
 	handler.on_item = on_item;
 	handler.on_end = on_end;
-	int num = yaml_parse(&handler, path, &loader);
-	if(num == 0)
+
+	// parse the YAML file
+	int res = yaml_parse(&handler, path, &loader);
+	if(res == 0)
 		return loader.board;
 	else {
 		if(loader.board)

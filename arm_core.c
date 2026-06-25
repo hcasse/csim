@@ -67,11 +67,9 @@ static inline uint32_t hash(csim_addr_t addr) {
 
 static inline int at_break(arm_core_inst_t *core, csim_addr_t addr) {
 	int i = hash(addr) & core->break_mask;
-	printf("DEBUG: breaks[%d] = %08x ~ %08x\n", i, core->breaks[i], addr);
 	if(!core->breaks[i])
 		return 0;
 	else if(core->breaks[i] == addr) {
-		printf("DEBUG: found!\n");
 		return 1;
 	}
 	else {
@@ -119,13 +117,11 @@ static void clear_break(csim_core_inst_t *inst, csim_addr_t addr) {
 static void set_break(csim_core_inst_t *inst, csim_addr_t addr) {
 	arm_core_inst_t *core = (arm_core_inst_t *)inst;
 	int i = hash(addr) & core->break_mask;
-	printf("DEBUG: set_break(%08x)\n", addr);
 
 	// place free
 	if(!core->breaks[i]) {
 		core->breaks[i] = addr;
 		core->break_cnt++;
-		printf("DEBUG: breaks[%d] = %08x\n", i, addr);
 	}
 
 	// place available

@@ -864,12 +864,10 @@ int csim_run(csim_board_t *board, csim_time_t time) {
 		for(csim_core_inst_t *core = board->cores; core; core = core->next) {
 			int res = ((csim_core_t *)core->inst.comp)->step(core);
 			at_break |= res;
-			printf("DEBUG: run %d -> %d\n", res, at_break);
 		}
 		update_components(board);
 		board->date++;
 	}
-	printf("DEBUG: at_break = %d\n", at_break);
 	return at_break;
 }
 

@@ -194,40 +194,48 @@ int main(int argc, const char *argv[]) {
     /* build the board */
     csim_board_t *board;
     char path[256];
-    if (board_path == NULL) {
+    if(board_path == NULL) {
         int l = strlen(exec);
-        if (strcmp(".elf", exec + l - 4) == 0) {
+        if(strcmp(".elf", exec + l - 4) == 0) {
             strncpy(path, exec, l - 4);
             path[l - 4] = '\0';
-        } else
+        }
+        else
             strcpy(path, exec);
         strcat(path, ".yaml");
-        if (VERBOSE)
+        if(VERBOSE)
             fprintf(stderr, "looking for board %s.\n", path);
-        if (access(path, R_OK) == 0)
+        if(access(path, R_OK) == 0)
             board_path = path;
     }
-    if (board_path == NULL) {
+    if(board_path == NULL) {
         if (VERBOSE)
             fprintf(stderr, "setting default board!\n");
         board = csim_new_board("default");
         core = (csim_core_inst_t *)csim_new_component(board, &arm_component.comp, "core", 0);
-        char *confs[] = {"key", "a", NULL};
         csim_new_component(board, &led_component.comp, "led", 0xA0000000);
-        csim_new_component_ext(board, &button_component.comp, "button", 0xB0000000, confs);
+		const char *button_conf[] = {
+			"name", "button",
+			"base", "B0000000",
+			"key", "a",
+			NULL
+		};
+        csim_new_component_ext(board, &button_component.comp, button_conf);
         board->level = CSIM_ERROR;
-    } else {
+    }
+    else {
         if (VERBOSE)
             fprintf(stderr, "loading board from %s\n", board_path);
         board = csim_load_board(board_path);
-        if (board == NULL) {
+        if(board == NULL) {
             fprintf(stderr, "ERROR: cannot load the board!\n");
             exit(3);
         }
-        if (board->cores == NULL) {
+        if(board->cores == NULL) {
             fprintf(stderr, "ERROR: no core in this board!\n");
             exit(2);
-        } else
+        }
+        else
             core = board->cores;
     }
 
