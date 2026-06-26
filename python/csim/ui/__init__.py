@@ -20,6 +20,8 @@
 
 import sys
 from orchid import Buffer
+from orchid import svg
+import csim
 
 # SVG
 def load_svg(path):
@@ -35,3 +37,29 @@ def load_svg(path):
 			buf.write(l)
 			l = input.readline()
 	return str(buf)
+
+
+def make_io(board, name, comp, inst, atts):
+	"""Ensures translation of IO components"""
+	type = csim.get(atts, "type", None)
+	assert type is not None
+	try:
+		mod = __import__("csim.ui.%s" % type, fromlist=["csim.ui"])
+	except ImportError as e:
+		raise csim.BoardError("cannot load %s: %s" % (type, e))
+	return mod.Component(board, name, comp, inst, atts)
+
+
+csim.COMPONENTS[csim.CSIM_IO] = make_io
+
+
+class Display(svg.Canvas):
+	"""Orchid component to display simulated IO components."""
+
+	def __init__(self):
+		svg.Canvas.__init__(self)
+
+	def install(self, board):
+		"""Add IO components from the board."""
+		for io in board.io_components:
+			io.install(self)

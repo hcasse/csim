@@ -73,7 +73,6 @@ run(PyObject *self, PyObject *args) {
 	if(!PyArg_ParseTuple(args, "OK", &board, &time))
 		return NULL;
 	int res = csim_run(TPTR(csim_board_t, board), time);
-	printf("DEBUG: inter: res = %d\n", res);
 	RETURN_INT(res);
 }
 

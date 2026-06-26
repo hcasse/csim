@@ -34,19 +34,19 @@
 #define ERROR	'!'
 
 static csim_board_t *board = NULL;
-static csim_inst_t *comps[1024];
-static int comp_count, core_index;
 
 uint8_t *msg_buf, *msg_top, *msg_ptr;
 uint32_t msg_size = BUFFER_SIZE;
 
+/**
+ * Display log information.
+ */
 void do_log(const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	va_end(args);
 }
-
 
 /**
  * Reset the message state.
@@ -222,6 +222,7 @@ int main() {
 		//do_log("INFO: got command '%c'\n", cmd);
 		switch(cmd) {
 
+		// load path:STR => null
 		case 'L':
 			if(board != NULL)
 				send_error("Board already loaded!");
@@ -231,60 +232,60 @@ int main() {
 				if(board == NULL)
 					send_error("Cannot open \"%s\".", path);
 				else {
-					comp_count = 0;
-					core_index = -1;
-					for(csim_inst_t *p = board->insts; p != NULL; p = p->next) {
-						if(p == &board->cores->inst)
-							core_index = comp_count;
-						comps[comp_count++] = p;
-					}
-					assert( core_index >= 0);
+					assert(board->cores);
 					send_ok();
 				}
 			}
 			break;
 
+		// reset board =>
 		case '0':
 			assert(board != NULL);
 			csim_reset_board(board);
 			send_ok();
 			break;
 
+		// count component => HALF
 		case '#':
 			assert(board != NULL);
 			reset_msg();
 			put_byte(OK);
-			put_half(comp_count);
+			put_half(board->inst_cnt);
 			send_msg();
 			break;
 
+		// core index => HALF
 		case 'C':
 			reset_msg();
 			put_byte(OK);
-			put_half(core_index);
+			put_half(board->cores->inst.id);
 			send_msg();
 			break;
 
+		// get IO components => count: HALF (index: HALF)*
 		case 'I': {
 				reset_msg();
 				put_byte(OK);
 				int c = 0;
-				for(int i = 0; i < comp_count; i++)
-					if(comps[i]->comp->type == CSIM_IO)
+				for(int i = 0; i < board->inst_cnt; i++)
+					if(board->insts[i]->comp->type == CSIM_IO)
 						c++;
 				put_half(c);
-				for(int i = 0; i < comp_count; i++)
-					if(comps[i]->comp->type == CSIM_IO)
+				for(int i = 0; i < board->inst_cnt; i++)
+					if(board->insts[i]->comp->type == CSIM_IO)
 						put_half(i);
 				send_msg();
 			}
 			break;
 
+		// get component information id: HALF
+		// => component name: STR, instance name: STR, type: BYTE, version: WORD,
+		// register count: HALF, port count: HALF
 		case 'c': {
 				assert(board != NULL);
 				int i = get_half();
-				assert(0 <= i && i < comp_count);
-				csim_inst_t *inst = comps[i];
+				assert(0 <= i && i < board->inst_cnt);
+				csim_inst_t *inst = board->insts[i];
 				reset_msg();
 				put_byte(OK);
 				put_string(inst->comp->name);
@@ -297,11 +298,14 @@ int main() {
 			}
 			break;
 
+		// get register information index: HALF
+		// => name: STR, offset: WORD, size: HALF, count: HALF, stride: WORD,
+		// flags: WORD
 		case 'R': {
 				assert(board != NULL);
 				int comp_idx = get_half();
-				assert(0 <= comp_idx && comp_idx < comp_count);
-				csim_inst_t *inst = comps[comp_idx];
+				assert(0 <= comp_idx && comp_idx < board->inst_cnt);
+				csim_inst_t *inst = board->insts[comp_idx];
 				int reg_idx = get_half();
 				assert(0 <= reg_idx && reg_idx < inst->comp->reg_cnt);
 				csim_reg_t *reg = &inst->comp->regs[reg_idx];
@@ -318,10 +322,11 @@ int main() {
 			}
 			break;
 
+		// load binary path: STR =>
 		case 'B': {
 				assert(board != NULL);
 				const char *path = get_string();
-				int res = csim_core_load((csim_core_inst_t *)comps[core_index], path);
+				int res = csim_core_load((csim_core_inst_t *)board->cores, path);
 				if(res == 0)
 					send_ok();
 				else
@@ -336,9 +341,11 @@ int main() {
 			}
 			break;*/
 
+		// quit
 		case 'Q':
 			return 0;
 
+		// get version => version: STR
 		case 'v':
 			reset_msg();
 			put_byte(OK);

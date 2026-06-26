@@ -53,7 +53,7 @@ OBJECTS=$(SOURCES:.c=.o)
 
 
 # rules
-all: gliss-all libcsim.a test-csim csim-run $(ALL)
+all: gliss-all libcsim.a test-csim csim-run csim-server $(ALL)
 
 clean: gliss-clean $(CLEAN)
 	-rm -rf $(OBJECTS) test-csim.o test-csim
@@ -65,6 +65,9 @@ test-csim: test-csim.o libcsim.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 csim-run: csim-run.o libcsim.a
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+csim-server: server.o libcsim.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 libcsim.a: $(OBJECTS)
@@ -80,7 +83,8 @@ loader.o: csim.h yaml.h
 arm_core.o: csim.h
 led.o: csim.h
 button.o: csim.h
-csim-run.o: csim.h
+csim-run.o: csim.h libcsim.a
+server.o: csim.h
 
 FILES = \
 	csim/README.md \

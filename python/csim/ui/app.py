@@ -20,21 +20,9 @@
 
 import csim
 from orchid import *
-from orchid import svg
+from csim.ui import Display
 
 RUN_FREQ = 10
-
-def make_io(board, name, comp, inst, atts):
-	"""Ensures translation of IO components"""
-	type = csim.get(atts, "type", None)
-	assert type is not None
-	try:
-		mod = __import__("csim.ui.%s" % type, fromlist=["csim.ui"])
-	except ImportError as e:
-		raise csim.BoardError("cannot load %s: %s" % (type, e))
-	return mod.Component(board, name, comp, inst, atts)
-
-csim.COMPONENTS[csim.CSIM_IO] = make_io
 
 class MyPage(Page):
 
@@ -46,9 +34,8 @@ class MyPage(Page):
 		self.run_but = Button("Run", on_click=self.run)
 		self.stop_but = Button("Stop", on_click=self.stop, enabled=False)
 		self.step_but = Button("Step", on_click=self.step)
-		self.canvas = svg.Canvas()
-		for io in board.io_components:
-			io.install(self.canvas)
+		self.display = Display()
+		self.display.install(board)
 		Page.__init__(
 			self,
 			VGroup([
@@ -61,7 +48,7 @@ class MyPage(Page):
 					self.addr,
 					self.inst
 				]),
-				self.canvas
+				self.display
 			]),
 			app = app
 		)
