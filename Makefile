@@ -38,7 +38,7 @@ endif
 
 # ARMV5T option
 ifdef ARMV5T_PATH
-CFLAGS += -DNO_MEM -I$(ARMV5T_PATH)/include
+CFLAGS += -I$(ARMV5T_PATH)/include
 LDFLAGS += -L$(ARMV5T_PATH)/src -larm
 endif
 
