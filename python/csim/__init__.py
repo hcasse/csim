@@ -155,10 +155,18 @@ class Component:
 		self.inst = inst
 		self.registers = None
 		self.id = None
+		self.comp_name = None
 
 	def get_name(self):
 		"""Get the name of the component."""
 		return self.name
+
+	def get_component_name(self):
+		"""Get the name of the component describing this component instance."""
+		if self.comp_name is None:
+			(name, type, vers, rcnt, pcnt, size) = libcsim.component_info(self.comp)
+			self.comp_name = name
+		return self.comp_name
 
 	def get_id(self):
 		if self.id is None:
@@ -355,13 +363,13 @@ class Board:
 
 	def reset(self):
 		"""Reset the state of the simulator."""
-		csim.reset_board(self.board)
+		libcsim.reset_board(self.board)
 		if self.bin_path is not None:
 			self.load_bin(self.bin_path)
 
 	def release(self):
 		"""Release resources used by the board."""
-		csim.delete_board(self.board)
+		libcsim.delete_board(self.board)
 		self.board = None
 
 	def get_pc(self):
