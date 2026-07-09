@@ -34,6 +34,8 @@ class MyPage(Page):
 		self.run_but = Button("Run", on_click=self.run)
 		self.stop_but = Button("Stop", on_click=self.stop, enabled=False)
 		self.step_but = Button("Step", on_click=self.step)
+		self.step_but = Button("Step", on_click=self.step)
+		self.release_but = Button("Release", on_click=self.release)
 		self.display = Display()
 		self.display.install(board)
 		Page.__init__(
@@ -46,7 +48,8 @@ class MyPage(Page):
 					self.step_but,
 					self.date,
 					self.addr,
-					self.inst
+					self.inst,
+					self.release_but
 				]),
 				self.display
 			]),
@@ -87,6 +90,9 @@ class MyPage(Page):
 	def reset(self):
 		self.board.reset()
 		self.show_current()
+
+	def release(self):
+		self.board.release()
 
 
 class MyApp(Application):
