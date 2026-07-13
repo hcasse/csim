@@ -65,6 +65,12 @@ static inline uint32_t hash(csim_addr_t addr) {
 	return (addr >> 3);
 }
 
+/**
+ * Test if the current address matches a breakpoint.
+ * @param core	Current core.
+ * @param addr	Address to test.
+ * @return		0 if it does not match, false else.
+ */
 static inline int at_break(arm_core_inst_t *core, csim_addr_t addr) {
 	int i = hash(addr) & core->break_mask;
 	if(!core->breaks[i])
@@ -95,23 +101,30 @@ static void add_break(arm_core_inst_t *core, csim_addr_t addr) {
 	core->break_cnt++;
 }
 
+/**
+ * Remove a breakpoint.
+ * @param inst		Current core instance.
+ * @param addr		Address of the breakpoint.
+ */
 static void clear_break(csim_core_inst_t *inst, csim_addr_t addr) {
 	arm_core_inst_t *core = (arm_core_inst_t *)inst;
 
 	// save breaks
 	int cnt = core->break_cnt - 1;
 	csim_addr_t saved[cnt];
-	for(int i = 0, j = 1; i < core->break_mask + 1; i++)
+	for(int i = 0, j = 0; i < core->break_mask + 1; i++)
 		if(core->breaks[i] && core->breaks[i] != addr)
 			saved[j++] = core->breaks[i];
 
 	// rebuild table
-	core->break_mask = (core->break_mask << 1) + 1;
-	core->breaks = (csim_addr_t *)calloc(sizeof(csim_addr_t),core->break_mask + 1);
+	core->breaks = memset(core->breaks, 0, sizeof(csim_addr_t) * (core->break_mask + 1));
 	core->break_cnt = 0;
 	for(int i = 0; i < cnt; i++)
 		add_break(core, saved[i]);
 
+	/*printf("DEBUG: breaks = \n");
+	for(int i = 0; i < core->break_mask+1; i++)
+		printf("DEBUG:%d: %08x\n", i, core->breaks[i]);*/
 }
 
 static void set_break(csim_core_inst_t *inst, csim_addr_t addr) {
@@ -146,6 +159,10 @@ static void set_break(csim_core_inst_t *inst, csim_addr_t addr) {
 		for(int i = 0; i < cnt; i++)
 			add_break(core, saved[i]);
 	}
+
+	/*printf("DEBUG: breaks = \n");
+	for(int i = 0; i < core->break_mask+1; i++)
+		printf("DEBUG:%d: %08x\n", i, core->breaks[i]);*/
 }
 
 static void destruct(csim_inst_t *inst) {

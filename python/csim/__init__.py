@@ -211,13 +211,14 @@ class Core(Component):
 		"""Disassemble the given address."""
 		return libcsim.core_disasm(self.core, addr)
 
-
 	def set_break(self, addr):
 		"""Set a break-point at provided address."""
+		#print(f"DEBUG:Py: set_break {addr:08x}")
 		libcsim.set_break(self.core, addr)
 
 	def clear_break(self, addr):
 		"""Clear a break-point at provided address."""
+		#print(f"DEBUG:Py: clear_break {addr:08x}")
 		libcsim.clear_break(self.core, addr)
 
 

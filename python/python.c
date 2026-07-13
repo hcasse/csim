@@ -468,6 +468,7 @@ set_break(PyObject *self, PyObject *args) {
 	csim_addr_t addr;
 	if(!PyArg_ParseTuple(args, "OI", &ocore, &addr))
 		return NULL;
+	//printf("DEBUG:PyC: set_break %08x\n", addr);
 	csim_core_inst_t *core = TPTR(csim_core_inst_t, ocore);
 	((csim_core_t *)core->inst.comp)->set_break(core, addr);
 	RETURN_NONE;
