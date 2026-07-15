@@ -10,10 +10,11 @@ from orchid.svg import Content
 class Component(csim.IOComponent):
 	IMAGE = None
 
-	def __init__(self, board, name, comp, inst, atts):
-		csim.IOComponent.__init__(self, board, name, comp, inst, atts)
-		self.x = csim.get(atts, "x", 0)
-		self.y = csim.get(atts, "y", 0)
+	def __init__(self, board, inst):
+		csim.IOComponent.__init__(self, board, inst)
+		confs = self.get_confs()
+		self.x = confs.get_int("x", 0)
+		self.y = confs.get_int("y", 0)
 
 	def on_push(self):
 		self.canvas.get_page().set_direct_attr(

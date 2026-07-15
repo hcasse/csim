@@ -18,6 +18,7 @@
 
 #define PTR(t, x)		((t *)PyCapsule_GetPointer(x, NULL))
 #define TPTR(t, x)		((t *)PyCapsule_GetPointer(x, #t))
+#define MAKE_TPTR(t, x)	PyCapsule_New(x, #t, NULL)
 
 static PyObject *
 new_board(PyObject *self, PyObject *args) {
@@ -485,6 +486,71 @@ clear_break(PyObject *self, PyObject *args) {
 	RETURN_NONE;
 }
 
+static PyObject *
+board_confs(PyObject *self, PyObject *args) {
+	PyObject *oboard;
+	if(!PyArg_ParseTuple(args, "O", &oboard))
+		return NULL;
+	csim_board_t *board = TPTR(csim_board_t, oboard);
+	int cnt = 0;
+	while(board->confs[cnt])
+		cnt++;
+	PyObject *list = PyList_New(cnt);
+	for(int i = 0; i < cnt; i++)
+		PyList_SET_ITEM(list, i, PyUnicode_FromString(board->confs[i]));
+	return list;
+}
+
+static PyObject *
+inst_confs(PyObject *self, PyObject *args) {
+	PyObject *oinst;
+	if(!PyArg_ParseTuple(args, "O", &oinst))
+		return NULL;
+	csim_inst_t *inst = TPTR(csim_inst_t, oinst);
+	int cnt = 0;
+	while(inst->confs[cnt])
+		cnt++;
+	PyObject *list = PyList_New(cnt);
+	for(int i = 0; i < cnt; i++)
+		PyList_SET_ITEM(list, i, PyUnicode_FromString(inst->confs[i]));
+	return list;
+}
+
+static PyObject *
+get_insts(PyObject *self, PyObject *args) {
+	PyObject *oboard;
+	if(!PyArg_ParseTuple(args, "O", &oboard))
+		return NULL;
+	csim_board_t *board = TPTR(csim_board_t, oboard);
+	PyObject *list = PyList_New(board->inst_cnt);
+	for(unsigned i = 0; i < board->inst_cnt; i++)
+		PyList_SET_ITEM(list, i, MAKE_TPTR(csim_inst_t, board->insts[i]));
+	return list;
+}
+
+static PyObject *
+get_comp(PyObject *self, PyObject *args) {
+	PyObject *oinst;
+	if(!PyArg_ParseTuple(args, "O", &oinst))
+		return NULL;
+	csim_inst_t *inst = TPTR(csim_inst_t, oinst);
+	RETURN_TPTR(csim_component_t, inst->comp);
+}
+
+static PyObject *
+inst_info(PyObject *self, PyObject *args) {
+	PyObject *oinst;
+	if(!PyArg_ParseTuple(args, "O", &oinst))
+		return NULL;
+	csim_inst_t *inst = TPTR(csim_inst_t, oinst);
+	return Py_BuildValue("(isiii)",
+		inst->base,
+		inst->name,
+		inst->number,
+		inst->flags,
+		inst->id);
+}
+
 static PyMethodDef csim_methods[] = {
 	FUN(new_board, "(name, memory) Create a new board."
 		"memory may be None. Return the board."),
@@ -528,12 +594,17 @@ static PyMethodDef csim_methods[] = {
 	FUN(do_input, "(board, id, ressource, state) Perform an input as a state change."),
 	FUN(set_break, "(core, address) Set a breakpoint."),
 	FUN(clear_break, "(core, address) Clear a breakpoint."),
+	FUN(board_confs, "(board) Get configurations for the board: an array made of a sequence of ID, value."),
+	FUN(inst_confs, "(board) Get configurations for an instance. an array made of a sequence of ID, value."),
+	FUN(get_insts, "(board) Get the list of components in the board."),
+	FUN(get_comp, "(instance) Get the component of the instance."),
+	FUN(inst_info, "(instance) Get information about instance (base address, name, number, flags, id)"),
 	{NULL, NULL, 0, NULL}
 };
 
 static struct PyModuleDef csim_module = {
     PyModuleDef_HEAD_INIT,
-    "csim",
+    "libcsim",
     "Compmonent Simulation Library",
     -1,
     csim_methods

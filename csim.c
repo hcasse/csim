@@ -36,6 +36,44 @@
 ///
 static csim_iostate_t iostate_end = {NULL, { 0, 0, 0 } };
 
+/**
+ * Free data allocated for a configuration.
+ * @param confs		Configuration to save.
+ */
+static void csim_free_confs(csim_confs_t confs) {
+	free((char **)confs);
+}
+
+/**
+ * Allocate a new version of configuration.
+ * @param confs		Configurations to copy.
+ * @return			Copied configuration to free with @ref csim_free_confs().
+ */
+static csim_confs_t csim_copy_confs(csim_confs_t confs) {
+
+	// compute size and count
+	int cnt = 0;
+	int size = 0;
+	while(confs[cnt] != NULL) {
+		size += strlen(confs[cnt]) + 1;
+		cnt++;
+	}
+
+	// allocate and prepare pointer
+	char *data = (char *)malloc(sizeof(char *) * (cnt + 1) + size);
+	csim_confs_t copy = (csim_confs_t)data;
+	char *buf = data + sizeof(char *) * (cnt + 1);
+
+	// copy the content
+	for(int i = 0; i < cnt; i++) {
+		copy[i] = buf;
+		strcpy(buf, confs[i]);
+		buf += strlen(confs[i]) + 1;
+	}
+	copy[cnt] = NULL;
+
+	return copy;
+}
 
 /**
  * @defgroup csim Simulation Module
@@ -347,6 +385,9 @@ csim_board_t *csim_new_board(const char *name) {
  */
 csim_board_t *csim_new_board_ext(csim_confs_t conf) {
 
+	// duplicate configuration
+	csim_confs_t my_confs = csim_copy_confs(conf);
+
 	/* build the board */
 	csim_board_t *board = (csim_board_t *)malloc(sizeof(csim_board_t));
 	if(board == NULL)
@@ -363,6 +404,7 @@ csim_board_t *csim_new_board_ext(csim_confs_t conf) {
 	board->pending = NULL;
 	board->iostates_head = &iostate_end;
 	board->iostates_count = 0;
+	board->confs = my_confs;
 	board->log = csim_log;
 	memset(board->ios, 0, sizeof(csim_io_t *) * CSIM_IO_SIZE);
 
@@ -380,7 +422,7 @@ csim_board_t *csim_new_board_ext(csim_confs_t conf) {
 				board->log(board, CSIM_DEBUG, "clock = %ld", clock);
 		}
 		else if(strcmp(conf[i], "name") == 0) {
-			board->name = strdup(conf[i + 1]);
+			board->name = my_confs[i + 1];
 			board->log(board, CSIM_DEBUG, "name = %s", board->name);
 		}
 		else if(strcmp(conf[i], "log") == 0) {
@@ -415,6 +457,7 @@ void csim_delete_board(csim_board_t *board) {
 	}
 
 	board->log(board, CSIM_INFO, "deleting board %s", board->name);
+	csim_free_confs(board->confs);
 	free(board->insts);
 	free(board);
 }
@@ -457,7 +500,7 @@ void csim_reset_board(csim_board_t *board) {
 csim_inst_t *csim_new_component(csim_board_t *board, csim_component_t *comp, const char *name, csim_addr_t base) {
 	char base_str[16];
 	sprintf(base_str, "%08x", base);
-	csim_confs_t confs = { "name", name, "base", base_str, NULL };
+	const char *confs[] = { "name", name, "base", base_str, NULL };
 	return csim_new_component_ext(board, comp, confs);
 }
 
@@ -472,7 +515,6 @@ static void csim_record_regs(csim_board_t *board, csim_inst_t *inst) {
 		if((comp->regs[j].flags & CSIM_INTERN) == 0)
 		csim_io_add(&comp->regs[j], inst);
 }
-
 
 /**
  * Default update function that does nothing.
@@ -499,13 +541,14 @@ void csim_default_update(csim_inst_t *inst) {
  * @ingroup csim
  */
 csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp, csim_confs_t confs) {
+	csim_confs_t my_confs = csim_copy_confs(confs);
 
 	/* parse configuration */
 	const char *name = "no name";
 	csim_addr_t base = 0;
 	for(int i = 0; confs[i]; i += 2)
 		if(strcmp(confs[i], "name") == 0) {
-			name = strdup(confs[i + 1]);
+			name = my_confs[i + 1];
 			board->log(board, CSIM_DEBUG, "name=%s", name);
 		}
 		else if(strcmp(confs[i], "base") == 0) {
@@ -529,6 +572,7 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 		inst->ports[j].link = NULL;
 	}
 	inst->id = board->inst_cnt;
+	inst->confs = my_confs;
 
 	/* determine number in the component instances */
 	inst->number = 0;
@@ -566,10 +610,9 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	/* record the IO registers */
 	if(board->cores != NULL)
 		csim_record_regs(board, inst);
-	else if(comp->type == CSIM_CORE) {
+	else if(comp->type == CSIM_CORE)
 		for(int i = 0; i < board->inst_cnt; i++)
 			csim_record_regs(board, board->insts[i]);
-	}
 
 	return inst;
 }
@@ -583,6 +626,7 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 void csim_delete_component(csim_inst_t *inst) {
 	csim_board_t *b = inst->board;
 	b->log(b, CSIM_INFO, "deleting %s (%s)", inst->name, inst->comp->name);
+	csim_free_confs(inst->confs);
 	inst->comp->destruct(inst);
 	free(inst);
 }

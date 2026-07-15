@@ -22,6 +22,7 @@ import sys
 from orchid import Buffer
 from orchid import svg
 import csim
+import libcsim
 
 # SVG
 def load_svg(path):
@@ -39,15 +40,15 @@ def load_svg(path):
 	return str(buf)
 
 
-def make_io(board, name, comp, inst, atts):
+def make_io(board, inst):
 	"""Ensures translation of IO components"""
-	type = csim.get(atts, "type", None)
-	assert type is not None
+	comp = libcsim.get_comp(inst)
+	name = libcsim.component_info(comp)[0]
 	try:
-		mod = __import__("csim.ui.%s" % type, fromlist=["csim.ui"])
+		mod = __import__(f"csim.ui.{name}", fromlist=["csim.ui"])
 	except ImportError as e:
-		raise csim.BoardError("cannot load %s: %s" % (type, e))
-	return mod.Component(board, name, comp, inst, atts)
+		raise csim.BoardError("cannot load %s: %s" % (name, e))
+	return mod.Component(board, inst)
 
 
 csim.COMPONENTS[csim.CSIM_IO] = make_io

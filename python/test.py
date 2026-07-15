@@ -9,6 +9,11 @@ print(f"Board: {board}")
 core = board.get_core()
 print(f"Core: {core}")
 
+# display instances
+print("Components:")
+for inst in board.get_components():
+	print(f"* {inst} ({inst.get_confs()})")
+
 # display registers
 registers = core.get_registers()
 print(f"Registers: {registers}")

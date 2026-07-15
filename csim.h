@@ -86,7 +86,6 @@ typedef struct csim_core_inst_t csim_core_inst_t;
 #define CSIM_MEM_READ	0
 #define CSIM_MEM_WRITE	1
 typedef void (*csim_callback_t)(csim_addr_t addr, int size, void *data, int type_access, void *cdata);
-//typedef struct csim_memory_t csim_memory_t;
 typedef struct csim_inst_t csim_inst_t;
 typedef struct csim_iocomp_t csim_iocomp_t;
 typedef struct csim_iocomp_inst_t csim_iocomp_inst_t;
@@ -147,7 +146,7 @@ struct csim_evt_t {
 
 /* component */
 
-typedef const char *csim_confs_t[];
+typedef const char **csim_confs_t;
 
 struct csim_component_t {
 	const char *name;
@@ -176,6 +175,7 @@ struct csim_inst_t {
 	uint32_t id;
 	csim_board_t *board;
 	csim_port_inst_t *ports;
+	csim_confs_t confs;
 };
 
 
@@ -262,6 +262,7 @@ struct csim_board_t {
 	csim_inst_t *pending;
 	csim_iostate_t *iostates_head;
 	int iostates_count;
+	csim_confs_t confs;
 	void (*log)(csim_board_t *board, csim_level_t level, const char *msg, ...);
 	csim_io_t *ios[CSIM_IO_SIZE];
 };

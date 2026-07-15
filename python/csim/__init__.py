@@ -20,7 +20,6 @@
 """Basic CSIM objects."""
 
 from enum import IntEnum
-import yaml
 
 import libcsim
 
@@ -44,17 +43,31 @@ class BoardError(Exception):
 		return self.msg
 
 
-def get(map, name, default = None):
-	try:
-		return map[name]
-	except KeyError:
-		return default
+class Confs:
 
-def obtain(map, name, msg):
-	try:
-		return map[name]
-	except KeyError:
-		raise BoardError(msg)
+	def __init__(self, confs):
+		self.map = {}
+		for i in range(0, len(confs), 2):
+			self.map[confs[i]] = confs[i+1]
+
+	def get(self, name, default = None):
+		try:
+			return self.map[name]
+		except KeyError:
+			return default
+
+	def get_int(self, name, default = 0):
+		try:
+			return int(self.get(name, default))
+		except ValueError:
+			raise BoardError(f"{name} should be a int!")
+
+	def obtain(map, name, msg):
+		try:
+			return map[name]
+		except KeyError:
+			raise BoardError(msg)
+
 
 # Log levels
 CSIM_NOLOG = 0
@@ -148,14 +161,16 @@ class Register:
 class Component:
 	"""Represents a simple component instance."""
 
-	def __init__(self, board, name, comp, inst, atts):
+	def __init__(self, board, inst):
 		self.board = board
-		self.name = name
-		self.comp = comp
 		self.inst = inst
+		self.comp = libcsim.get_comp(inst)
+		self.info = libcsim.inst_info(inst)
+		self.name = self.info[1]
 		self.registers = None
-		self.id = None
+		self.id = self.info[4]
 		self.comp_name = None
+		self.confs = None
 
 	def get_name(self):
 		"""Get the name of the component."""
@@ -169,8 +184,6 @@ class Component:
 		return self.comp_name
 
 	def get_id(self):
-		if self.id is None:
-			self.id = libcsim.inst_id(self.inst)
 		return self.id
 
 	def get_registers(self):
@@ -183,12 +196,21 @@ class Component:
 				self.registers.append(Register(self, reg))
 		return self.registers
 
+	def __str__(self):
+		return f"{self.name}[{self.id}]: {self.get_component_name()}"
+
+	def get_confs(self):
+		"""Get the configurations of the component."""
+		if self.confs is None:
+			self.confs = Confs(libcsim.inst_confs(self.inst))
+		return self.confs
+
 
 class Core(Component):
 	"""Represents a core component."""
 
-	def __init__(self, board, name, comp, inst, atts):
-		Component.__init__(self, board, name, comp, inst, atts)
+	def __init__(self, board, inst):
+		Component.__init__(self, board, inst)
 		self.core = libcsim.get_core(board.board)
 		assert self.core
 
@@ -225,8 +247,8 @@ class Core(Component):
 class IOComponent(Component):
 	"""Represents an IO component."""
 
-	def __init__(self, board, name, comp, inst, atts):
-		Component.__init__(self, board, name, comp, inst, atts)
+	def __init__(self, board, inst):
+		Component.__init__(self, board, inst)
 		board.io_components.append(self)
 
 	def install(self, canvas):
@@ -261,57 +283,28 @@ class Board:
 		self.map = {}
 
 		# load the board
-		try:
-			with open(board_path, "r") as input:
-				desc = yaml.safe_load(input)
-				if desc is None:
-					raise BoardError(f"empty board in {board_path}")
-		except OSError as exn:
-			raise BoardError(str(exn))
+		self.board = libcsim.load_board(board_path)
+		if self.board is None:
+			raise BoardError(f"cannot open board {board_path}")
 
-		# build the board
-		conf = []
-		for (key, val) in desc.items():
-			conf.append(key)
-			conf.append(str(val))
-		self.board = libcsim.new_board_ext(conf)
+		# initialize all
 		self.core = None
 		self.clock = None
+		self.confs = None
 
-		# build the components
-		comps = obtain(desc, "components", "no component defined")
-		for (name, cdesc) in comps.items():
-			type = obtain(cdesc, "type", "no type defined for %s" % name)
-			comp = libcsim.find_component(type)
-			if comp is None:
-				raise BoardError("cannot find component %s" % type)
-			info = libcsim.component_info(comp)
-			#base = int(get(cdesc, "base", "0"), 16)
-			conf = []
-			for (key, val) in cdesc.items():
-				conf.append(key)
-				conf.append(str(val))
-			inst = libcsim.new_component_ext(self.board, comp, conf)
-			ctype = info[1]
-			obj = COMPONENTS[ctype](self, name, comp, inst, cdesc)
-			self.components.append(obj)
-			id = libcsim.inst_id(inst)
-			self.map[id] = obj
-			if isinstance(obj, Core):
+		# build the list of components
+		for inst in libcsim.get_insts(self.board):
+			comp = libcsim.get_comp(inst)
+			comp_info = libcsim.component_info(comp)
+			ctype = comp_info[1]
+			py_inst = COMPONENTS[ctype](self,  inst)
+			self.components.append(py_inst)
+			self.map[py_inst.get_id()] = py_inst
+			if isinstance(py_inst, Core):
 				if self.core != None:
 					raise BoardError("several cores defined!")
 				else:
-					self.core = obj
-
-		# build the connections
-		cons = get(desc, "connect")
-		if cons != None:
-			for con in cons:
-				from_ = obtain(con, "from", "no 'from' in connection")
-				(from_inst, from_port) = self.parse_port(from_)
-				to_ = obtain(con, "to", "no 'to' in connection")
-				(to_inst, to_port) = self.parse_port(to_)
-				libcsim.connect(from_inst, from_port, to_inst, to_port)
+					self.core = py_inst
 
 		# check for cores
 		if self.core is None:
@@ -320,6 +313,12 @@ class Board:
 		# if required, load the binary
 		if bin_path is not None:
 			self.load_bin(bin_path)
+
+	def get_confs(self):
+		"""Get the configuration of the board."""
+		if self.confs is None:
+			self.confs = Confs(libcsim.board_confs(self.board))
+		return self.confs
 
 	def run(self, time = 10):
 		return libcsim.run(self.board, time)

@@ -58,11 +58,12 @@ class LED(Content):
 
 class Component(csim.IOComponent):
 
-	def __init__(self, board, name, comp, inst, atts):
-		csim.IOComponent.__init__(self, board, name, comp, inst, atts)
-		self.x = int(csim.get(atts, "x", 0))
-		self.y = int(csim.get(atts, "y", 0))
-		self.color = csim.get(atts, "color", "#FF0000")
+	def __init__(self, board, inst):
+		csim.IOComponent.__init__(self, board, inst)
+		confs = self.get_confs()
+		self.x = confs.get_int("x", 0)
+		self.y = confs.get_int("y", 0)
+		self.color = confs.get("color", "#FF0000")
 
 	def install(self, canvas):
 		self.shape = LED(self.x, self.y, self.color)
