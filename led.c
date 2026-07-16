@@ -105,6 +105,7 @@ static void led_update(csim_inst_t *inst) {
  */
 csim_iocomp_t led_component = {
 	{
+		NULL,
 		"led",
 		CSIM_IO,
 		1,

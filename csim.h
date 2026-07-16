@@ -149,6 +149,7 @@ struct csim_evt_t {
 typedef const char **csim_confs_t;
 
 struct csim_component_t {
+	struct csim_component_t *next;
 	const char *name;
 	csim_ctype_t type;
 	uint32_t version;
@@ -277,6 +278,8 @@ csim_board_t *csim_load_board(const char *path);
 void csim_reset_board(csim_board_t *board);
 
 csim_component_t *csim_find_component(const char *name);
+void csim_register_component(csim_component_t *comp);
+
 csim_inst_t *csim_new_component(csim_board_t *board, csim_component_t *comp, const char *name, csim_addr_t base);
 csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp, csim_confs_t confs);
 void csim_delete_component(csim_inst_t *inst);

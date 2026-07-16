@@ -26,21 +26,8 @@
 
 #include "yaml.h"
 
-#include "arm_core.h"
-#include "button.h"
-#include "led.h"
 #include "timer.h"
 
-
-/**
- * Available components.
- */
-csim_component_t *comps[] = {
-	&led_component.comp,
-	&button_component.comp,
-	&arm_component.comp,
-	NULL
-};
 
 /**
  * Loader structure for YAML parsing.
@@ -188,14 +175,7 @@ static void on_end(void *data) {
     case IN_COMP: {
 
         /* find the component */
-        csim_component_t *type = NULL;
-
-        /* build the component */
-        for (int i = 0; comps[i] != NULL; i++)
-            if (strcmp(loader->type, comps[i]->name) == 0) {
-                type = comps[i];
-                break;
-            }
+        csim_component_t *type = csim_find_component(loader->type);
         if (type == NULL) {
             fprintf(stderr, "ERROR: component type %s does not exist!\n", loader->type);
             exit(1);

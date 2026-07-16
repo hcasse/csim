@@ -71,6 +71,7 @@ csim_reg_t c1_regs[] = {
 };
 
 csim_component_t c1 = {
+	NULL,
 	"C1",
 	CSIM_SIMPLE,
 	1,
@@ -109,6 +110,7 @@ csim_port_t c2_ports[] = {
 
 
 csim_component_t c2 = {
+	NULL,
 	"C2",
 	CSIM_SIMPLE,
 	1,

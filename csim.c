@@ -26,9 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*#define CSIM_INSIDE
-#include "mem.h"*/
 #include "csim.h"
+#include "arm_core.h"
+#include "button.h"
+#include "led.h"
 
 #define CSIM_DEFAULT_CLOCK	1000
 
@@ -130,6 +131,21 @@ static csim_confs_t csim_copy_confs(csim_confs_t confs) {
  */
 
 #define CSIM_IO_HASH(a)	(((csim_word_t)(a) >> CSIM_IO_SHIFT) & (CSIM_IO_SIZE - 1))
+
+
+/**
+ * Initialize the CSIM system.
+ */
+static void csim_init() {
+	static int init = 0;
+	if(!init) {
+		init = 1;
+		csim_register_component(&led_component.comp);
+		csim_register_component(&button_component.comp);
+		csim_register_component(&arm_component.comp);
+	}
+}
+
 
 /**
  * Default log function: log to stderr.
@@ -384,6 +400,7 @@ csim_board_t *csim_new_board(const char *name) {
  * @ingroup csim
  */
 csim_board_t *csim_new_board_ext(csim_confs_t conf) {
+	csim_init();
 
 	// duplicate configuration
 	csim_confs_t my_confs = csim_copy_confs(conf);
@@ -943,7 +960,7 @@ void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state) {
  * Defines the available components.
  * @ingroup csim
  */
-extern csim_component_t *comps[];
+static csim_component_t *csim_comps = NULL;
 
 
 /**
@@ -954,11 +971,22 @@ extern csim_component_t *comps[];
  * @ingroup csim
  */
 csim_component_t *csim_find_component(const char *name) {
-	for(int i = 0; comps[i] != NULL; i++)
-		if(strcmp(name, comps[i]->name) == 0)
-			return comps[i];
+	for(csim_component_t *comp = csim_comps; comp; comp = comp->next)
+		if(strcmp(name, comp->name) == 0)
+			return comp;
 	return NULL;
 }
+
+
+/**
+ * Register a component to be then retrieved with @ref csim_find_component().
+ * @param comp		Component to register.
+ */
+void csim_register_component(csim_component_t *comp) {
+	comp->next = csim_comps;
+	csim_comps = comp;
+}
+
 
 /**
  * Read a byte in memory.
