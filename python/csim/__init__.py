@@ -68,6 +68,9 @@ class Confs:
 		except KeyError:
 			raise BoardError(msg)
 
+	def __str__(self):
+		return str(self.map)
+
 
 # Log levels
 CSIM_NOLOG = 0
@@ -291,6 +294,7 @@ class Board:
 		self.core = None
 		self.clock = None
 		self.confs = None
+		self.name = None
 
 		# build the list of components
 		for inst in libcsim.get_insts(self.board):
@@ -405,3 +409,12 @@ class Board:
 		states = libcsim.flush_iostates(self.board)
 		for (id, ress, state) in states:
 			self.map[id].update(ress, state)
+
+	def get_name(self):
+		"""Get the name of the board."""
+		if self.name is None:
+			self.name = libcsim.board_name(self.board)
+		return self.name
+
+	def __str__(self):
+		return f"Board {self.get_name()}"

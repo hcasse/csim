@@ -551,6 +551,15 @@ inst_info(PyObject *self, PyObject *args) {
 		inst->id);
 }
 
+static PyObject *
+board_name(PyObject *self, PyObject *args) {
+	PyObject *oboard;
+	if(!PyArg_ParseTuple(args, "O", &oboard))
+		return NULL;
+	csim_board_t *board = TPTR(csim_board_t, oboard);
+	RETURN_STR(board->name);
+}
+
 static PyMethodDef csim_methods[] = {
 	FUN(new_board, "(name, memory) Create a new board."
 		"memory may be None. Return the board."),
@@ -599,6 +608,7 @@ static PyMethodDef csim_methods[] = {
 	FUN(get_insts, "(board) Get the list of components in the board."),
 	FUN(get_comp, "(instance) Get the component of the instance."),
 	FUN(inst_info, "(instance) Get information about instance (base address, name, number, flags, id)"),
+	FUN(board_name, "(board) Get the name of the board."),
 	{NULL, NULL, 0, NULL}
 };
 

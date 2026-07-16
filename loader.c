@@ -55,6 +55,8 @@ typedef struct {
     csim_port_t *from_port, *to_port;
     int conf_cnt;
     const char *confs[32];
+	int top_conf_cnt;
+	const char *top_confs[32];
 } loader_t;
 
 /**
@@ -112,12 +114,13 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
     switch (loader->state) {
 
     case TOP:
-        if (strcmp(key, "name") == 0) {
+        /* if (strcmp(key, "name") == 0) {
             loader->name = strdup(val);
             return YAML_DONE;
         }
-        else if (strcmp(key, "components") == 0) {
-            loader->board = csim_new_board(loader->name);
+        else */ if (strcmp(key, "components") == 0) {
+            // loader->board = csim_new_board(loader->name);
+			loader->board = csim_new_board_ext(loader->top_confs);
             loader->board->level = CSIM_ERROR;
             loader->state = IN_COMPS;
             return YAML_MAP;
@@ -126,6 +129,12 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
             loader->state = IN_CONNECT;
             return YAML_LIST;
         }
+        else {
+			loader->top_confs[loader->top_conf_cnt++] = strdup(key);
+			loader->top_confs[loader->top_conf_cnt++] = strdup(val);
+			loader->top_confs[loader->top_conf_cnt] = NULL;
+			return YAML_DONE;
+		}
         break;
 
     case IN_COMPS:
@@ -250,7 +259,9 @@ csim_board_t *csim_load_board(const char *path) {
 		NULL, 			// from_port
 		NULL,			// to_port
 		0, 				// conf_cnt
-		{ NULL }		// confs
+		{ NULL },		// confs
+		0,				// top_conf_cnt
+		{ NULL }		// top_confs
 	};
 
 	// build and install handler

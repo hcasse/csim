@@ -5,9 +5,10 @@ from csim import Board
 
 
 board = Board("../samples/sample1.yaml")
-print(f"Board: {board}")
+print(f"Board: {board} ({board.get_confs()})")
 core = board.get_core()
 print(f"Core: {core}")
+
 
 # display instances
 print("Components:")
