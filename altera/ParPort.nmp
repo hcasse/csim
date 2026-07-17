@@ -1,0 +1,54 @@
+let arch = "altera"
+let component = "ParPort"
+let copyright = "University of Toulouse"
+let date = "2026/07/17"
+let license = "GPLv3"
+let version = "1.0"
+let label = format("GPIO%d", __COMP_NUM)
+
+type bit = card(1)
+type word = card(32)
+
+reg DAR(1, word)
+	offset = 0x0
+	init = 0
+
+reg DIR(1, word)
+	offset = 0x4
+	init = 0
+
+reg IMR(1, word)
+	offset = 0x4
+	init = 0
+
+reg IMR(1, word)
+	offset = 0x4
+	init = 0
+
+reg ECR(1, word)
+	offset = 0x4
+	init = 0
+	on_write = {
+		ECR = 0;
+	}
+
+port IRQ(1, bit)
+
+port PORT(32, bit)
+	label = format("PORT%d.%d", __COM_NUM, __INDEX)
+
+
+op update()
+	action = {
+		for i in 0..31 do
+			if DIR<i..i> == 0 then
+				DAR<i..i> = PORT[i];
+				if PORT[i] then
+					ACR<i..i> = 1;
+				endif;
+			else
+				PORT[i] = DAR<i..i>;
+			endif;
+		endfor;
+		IRQ = (ECR & IMR) != 0;
+	}

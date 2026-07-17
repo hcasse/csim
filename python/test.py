@@ -4,7 +4,8 @@ import sys
 from csim import Board
 
 
-board = Board("../samples/sample1.yaml")
+#board = Board("../samples/sample1.yaml")
+board = Board("../samples/badplugin.yaml")
 print(f"Board: {board} ({board.get_confs()})")
 core = board.get_core()
 print(f"Core: {core}")

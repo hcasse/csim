@@ -20,6 +20,7 @@
  */
 
 #include <assert.h>
+#include <dlfcn.h>
 #include <memory.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -806,11 +807,26 @@ void csim_send_digital(csim_inst_t *inst, csim_port_t *port, int digit) {
 	if(CSIM_DEBUG <= b->level)
 		b->log(b, CSIM_DEBUG, "sending digital %d (%d) to %s of %s", digit, b->date, port->name, inst->name);
 
-	/* update distant port if any */
-	if(pi->link != NULL) {
-		csim_value_t v;
-		v.digital = digit;
-		pi->link->port->update(pi->link, CSIM_DIGITAL, v);
+	/* update distant port if any if required */
+	if(pi->value.digital != digit) {
+
+		// update port value
+		pi->value.digital = digit;
+
+		// update the link
+		if(pi->link != NULL) {
+
+			// store the value
+			int j = pi->link->port - pi->link->inst->comp->ports;
+			assert(0 <= j && j < pi->link->inst->comp->port_cnt);
+			csim_port_inst_t *pj = &pi->link->inst->ports[i];
+			pj->value.digital = digit;
+
+			// send the signal
+			pi->link->port->update(pi->link, CSIM_DIGITAL, pi->value);
+
+		}
+
 	}
 }
 
@@ -964,6 +980,19 @@ static csim_component_t *csim_comps = NULL;
 
 
 /**
+ * Lookup for a component in the current list of components.
+ * @param name	Name of looked component.
+ * @return		Found component or NULL.
+ */
+static csim_component_t *csim_lookup_component(const char *name) {
+	for(csim_component_t *comp = csim_comps; comp; comp = comp->next)
+		if(strcmp(name, comp->name) == 0)
+			return comp;
+	return NULL;
+}
+
+
+/**
  * Find a component by its name, possibly using some mechanism to get access
  * to it.
  * @param name	Component name.
@@ -971,10 +1000,45 @@ static csim_component_t *csim_comps = NULL;
  * @ingroup csim
  */
 csim_component_t *csim_find_component(const char *name) {
-	for(csim_component_t *comp = csim_comps; comp; comp = comp->next)
-		if(strcmp(name, comp->name) == 0)
-			return comp;
-	return NULL;
+
+	// look in the list
+	csim_component_t *comp = csim_lookup_component(name);
+	if(comp)
+		return comp;
+
+	// not found: try to find a plug-in
+	const char *p = strchr(name, '/');
+	if(p == NULL)
+		return NULL;
+
+	// build the plug-in name
+	char lib[32];
+	strncpy(lib, name, p - name);
+	char path[256];
+	snprintf(path, 256, "lib%s.so", lib);
+	fprintf(stderr, "DEBUG: linking for %s\n", path);
+
+	// load it;
+	void *handle = dlopen(path, RTLD_LAZY);
+	if(handle == NULL)
+		return NULL;
+
+	// get the array
+	char comps_name[256];
+	snprintf(path, 256, "%s_comps", lib);
+	void *sym = dlsym(handle, comps_name);
+	if(!sym)
+		return NULL;
+	csim_component_t **comps = (csim_component_t **)sym;
+
+	// register the components
+	while(*comps) {
+		csim_register_component(*comps);
+		comps++;
+	}
+
+	// look back for the component
+	return csim_lookup_component(name);
 }
 
 

@@ -60,7 +60,7 @@ typedef enum csim_ctype_t {
 	CSIM_IO = 3
 } csim_ctype_t;
 
-typedef enum csim_level_t {
+typedef enum csim_level_t: uint8_t {
 	CSIM_NOLOG = 0,
 	CSIM_DEBUG = 1,
 	CSIM_INFO = 2,
@@ -112,7 +112,7 @@ struct csim_reg_t {
 
 union csim_value_t {
 	int digital;
-	double analog;
+	float analog;
 	uint32_t clock;
 	char serial;
 };
@@ -130,6 +130,7 @@ struct csim_port_inst_t {
 	csim_port_t *port;
 	csim_inst_t *inst;
 	csim_port_inst_t *link;
+	csim_value_t value;
 };
 
 

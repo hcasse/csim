@@ -1,0 +1,15 @@
+name: sample1
+components:
+  CORE:
+    type: riscv/core
+  LED:
+    type: led
+    base: A0000000
+    x: 50
+    y: 50
+  BUTTON:
+    type: button
+    base: B0000000
+    key: b
+connect:
+
