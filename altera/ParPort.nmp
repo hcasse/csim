@@ -4,39 +4,38 @@ let copyright = "University of Toulouse"
 let date = "2026/07/17"
 let license = "GPLv3"
 let version = "1.0"
-let label = format("GPIO%d", __COMP_NUM)
 
 type bit = card(1)
 type word = card(32)
 
-reg DAR(1, word)
+reg DAR[1, word]
 	offset = 0x0
 	init = 0
+	update_on_write = 1
 
-reg DIR(1, word)
+reg DIR[1, word]
 	offset = 0x4
 	init = 0
+	update_on_write = 1
 
-reg IMR(1, word)
-	offset = 0x4
+reg IMR[1, word]
+	offset = 0x8
 	init = 0
+	update_on_write = 1
 
-reg IMR(1, word)
-	offset = 0x4
-	init = 0
-
-reg ECR(1, word)
-	offset = 0x4
+reg ECR[1, word]
+	offset = 0xc
 	init = 0
 	on_write = {
 		ECR = 0;
 	}
+	update_on_write = 1
 
 port IRQ(1, bit)
 
 port PORT(32, bit)
-	label = format("PORT%d.%d", __COM_NUM, __INDEX)
-
+	label = format("PORT%d.%d", __COMP_NUM, __INDEX)
+	update_on_write = 1
 
 op update()
 	action = {
@@ -44,11 +43,11 @@ op update()
 			if DIR<i..i> == 0 then
 				DAR<i..i> = PORT[i];
 				if PORT[i] then
-					ACR<i..i> = 1;
+					ECR<i..i> = 1;
 				endif;
 			else
 				PORT[i] = DAR<i..i>;
 			endif;
-		endfor;
+		enddo;
 		IRQ = (ECR & IMR) != 0;
 	}

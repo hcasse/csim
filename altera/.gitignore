@@ -1,0 +1,5 @@
+*.o
+*.so
+ParPort.c
+ParPort.h
+

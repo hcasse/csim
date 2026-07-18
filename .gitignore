@@ -11,6 +11,7 @@ stm32/*.h
 *.cma
 *.mli
 *.dis
+*-swp
 gliss/irg/parser.ml
 gliss/irg/lexer.ml
 gliss/irg/config.ml

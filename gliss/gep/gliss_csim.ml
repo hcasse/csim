@@ -1,5 +1,5 @@
 (*
- * This file is part of GLISS2 
+ * This file is part of GLISS2
  * Copyright (c) 2009-10, IRIT - UPS <casse@irit.fr>
  *
  * GLISS2 is free software; you can redistribute it and/or modify
@@ -24,6 +24,9 @@ let text f = Templater.TEXT f
 let coll f = Templater.COLL f
 let bool f = Templater.BOOL f
 
+let c_template = ref ""
+let h_template = ref ""
+
 
 (** Assign an index to each port.
 	@return	Map of ports. *)
@@ -32,7 +35,7 @@ let assign_ports _ =
 		(fun name spec (map, i) ->
 			match spec with
 			| PORT(_, count, _, _) -> ((name, i)::map, i+count)
-			| _ -> (map, i)	
+			| _ -> (map, i)
 		)
 		([], 0)
 	)
@@ -156,7 +159,7 @@ let get_registers info f dict =
 			(*match get_int_att "write_only" atts with
 			| None -> pre_error "write_only must evaluate to 0 or to 1"
 			| Some x -> x = Int32.zero in*)
-	
+
 		("count", out (fun _ -> sprintf "%d" count)) ::
 		("init", text init) ::
 		("intern", Templater.BOOL intern) ::
@@ -178,7 +181,7 @@ let get_registers info f dict =
 		("stride",  text stride) ::
 		("type", out (fun _ -> Toc.type_to_string (Toc.convert_type typ))) ::
 		dict in
-	
+
 	Irg.iter
 		(fun name spec ->
 			match spec with
@@ -230,17 +233,17 @@ let get_ports info pmap f dict =
 			| _ -> ())
 
 
-let get_events info f dict = 
-	let make name atts dict = 
+let get_events info f dict =
+	let make name atts dict =
 
-		let on_update out = 
+		let on_update out =
 			match get_attr "on_update" atts with
 			| None -> ()
 			| Some (ATTR_STAT (_,s)) -> gen_code info s out
 			| _ -> pre_error "on_update must be an attribute and define an instruction!" in
 
 		let on_trigger out =
-			match get_attr "on_trigger" atts with 
+			match get_attr "on_trigger" atts with
 			| None -> ()
 			| Some (ATTR_STAT (_,s)) -> gen_code info s out
 			| _ -> pre_error "on_update must be an attribute and define an instruction!" in
@@ -254,7 +257,7 @@ let get_events info f dict =
 					(fun name spec ->
 						match spec with
 						| EVENT (name, atts) -> f (make name atts dict)
-						| _ -> ()) 
+						| _ -> ())
 
 			(** Build the top-level dictionary. *)
 let make_top_dict comp info =
@@ -279,8 +282,8 @@ let make_top_dict comp info =
 		| None -> "NoArch"
 		| Some name -> name in
 
-	let io_comp = 
-		match get_int_let "io_comp" with 
+	let io_comp =
+		match get_int_let "io_comp" with
 		| Some 1 -> true
 		| _ -> false in
 
@@ -306,10 +309,17 @@ let _  =
 		info.Toc.proc <- "";
 		let comp = comp_name () in
 		let dict = make_top_dict comp info in
-		printf "Generating %s.h\n" comp;
-		Templater.generate dict "csim.h" (comp ^ ".h");
-		printf "Generating %s.c\n" comp;
-		Templater.generate dict "csim.c" (comp ^ ".c") in
-	
-	App.run [] "GLISS generator of CSim component" process
+		if !h_template <> ""  then begin
+			printf "Generating %s.h\n" comp;
+			Templater.generate_path dict !h_template (comp ^ ".h")
+		end;
+		if !c_template <> ""  then begin
+			printf "Generating %s.c\n" comp;
+			Templater.generate_path dict !c_template (comp ^ ".c")
+		end in
+
+	App.run [
+		("-h", Arg.Set_string h_template, "select path to .h template");
+		("-c", Arg.Set_string c_template, "select path to .c template")
+	] "GLISS generator of CSim component" process
 
