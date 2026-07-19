@@ -20,12 +20,14 @@
  */
 
 #include <assert.h>
-#include <dlfcn.h>
 #include <memory.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define _GNU_SOURCE
+#include <dlfcn.h>
 
 #include "csim.h"
 #include "arm_core.h"
@@ -33,6 +35,27 @@
 #include "led.h"
 
 #define CSIM_DEFAULT_CLOCK	1000
+
+
+/**
+ * Defines the available components.
+ * @ingroup csim
+ */
+static csim_component_t *csim_comps = NULL;
+
+
+/**
+ * List of directories to find plug-in.
+ * @ingroup csim
+ */
+static const char *csim_path[32];
+
+
+/**
+ * Count of entries used in @ref csim_path.
+ * @ingroup csim
+ */
+static int csim_path_cnt = 0;
 
 
 ///
@@ -136,15 +159,49 @@ static csim_confs_t csim_copy_confs(csim_confs_t confs) {
 
 /**
  * Initialize the CSIM system.
+ * @ingroup csim
  */
 static void csim_init() {
 	static int init = 0;
 	if(!init) {
+
+		// initialize list of default components
 		init = 1;
 		csim_register_component(&led_component.comp);
 		csim_register_component(&button_component.comp);
 		csim_register_component(&arm_component.comp);
+
+		// initialize default path
+		char *path = getenv("CSIMPATH");
+		if(path == NULL) {
+			csim_add_path("");
+			csim_add_path(".");
+		}
+		else {
+			char *p = strchr(path, ':');
+			while(p != NULL) {
+				*p = '\0';
+				csim_add_path(path);
+				path = p + 1;
+				p = strchr(path, ':');
+			}
+			csim_add_path(path);
+		}
 	}
+}
+
+
+/**
+ * Add a path to the paths looked for a plug-in.
+ * @param path	Added path.
+ */
+void csim_add_path(const char *path) {
+	csim_init();
+	if(csim_path_cnt == 32) {
+		fprintf(stderr, "ERROR: too many added plug-in paths!\n");
+		abort();
+	}
+	csim_path[csim_path_cnt++] = path;
 }
 
 
@@ -973,13 +1030,6 @@ void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state) {
 
 
 /**
- * Defines the available components.
- * @ingroup csim
- */
-static csim_component_t *csim_comps = NULL;
-
-
-/**
  * Lookup for a component in the current list of components.
  * @param name	Name of looked component.
  * @return		Found component or NULL.
@@ -1014,24 +1064,41 @@ csim_component_t *csim_find_component(const char *name) {
 	// build the plug-in name
 	char lib[32];
 	strncpy(lib, name, p - name);
-	char path[256];
-	snprintf(path, 256, "lib%s.so", lib);
-	fprintf(stderr, "DEBUG: linking for %s\n", path);
+	char libname[256];
+	snprintf(libname, 256, "lib%s.so", lib);
 
-	// load it;
-	void *handle = dlopen(path, RTLD_LAZY);
-	if(handle == NULL)
-		return NULL;
+	// test for each entry in the handle
+	void *handle = NULL;
+	for(int i = 0; i < csim_path_cnt && handle == NULL; i++) {
 
-	// get the array
-	char comps_name[256];
-	snprintf(path, 256, "%s_comps", lib);
-	void *sym = dlsym(handle, comps_name);
-	if(!sym)
+		// build the path
+		char path[512];
+		if(*csim_path[i] == '\0')
+			strcpy(path, libname);
+		else
+			snprintf(path, 512, "%s/%s", csim_path[i], libname);
+
+		// load it
+		handle = dlopen(path, RTLD_LAZY);
+	}
+	if(handle == NULL) {
+		fprintf(stderr, "ERROR: cannot find plugin %s\n", libname);
 		return NULL;
-	csim_component_t **comps = (csim_component_t **)sym;
+	}
+
+	// get the function
+	char fun_name[256];
+	snprintf(fun_name, 256, "%s_get_components", lib);
+	void *sym = dlsym(handle, fun_name);
+	if(!sym) {
+		fprintf(stderr, "ERROR: cannot find symbol %s in plugin %s\n", fun_name, libname);
+		return NULL;
+	}
+	typedef csim_component_t **(*fun_t)();
+	fun_t fun = (fun_t)sym;
 
 	// register the components
+	csim_component_t **comps = fun();
 	while(*comps) {
 		csim_register_component(*comps);
 		comps++;

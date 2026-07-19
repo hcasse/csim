@@ -1,0 +1,12 @@
+name: altera
+components
+  CORE
+    type: arm
+  LED
+    type: led
+    base: A0000000
+  GPIO:
+    type: altera/ParPort
+    base: FF000000
+connect
+

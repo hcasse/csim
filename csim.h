@@ -269,9 +269,7 @@ struct csim_board_t {
 	csim_io_t *ios[CSIM_IO_SIZE];
 };
 
-csim_port_type_t csim_get_unit(const char *name);
-const char *csim_unit_name(csim_port_type_t type);
-
+void csim_add_path(const char *path);
 csim_board_t *csim_new_board(const char *name);
 csim_board_t *csim_new_board_ext(csim_confs_t conf);
 void csim_delete_board(csim_board_t *board);

@@ -15,9 +15,3 @@ all: libaltera.so
 clean:
 	-rm -f $(HEADERS) $(SOURCES) $(OBJECTS) altera.o libaltera.so
 
-libaltera.so: altera.o $(OBJECTS)
-	gcc -shared -o $@ $^ $(LDFLAGS)
-
-%.c: %.nmp
-	$(GLISS) $(GLISS_FLAGS) $<
-
