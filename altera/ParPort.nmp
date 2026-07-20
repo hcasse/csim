@@ -35,7 +35,7 @@ port IRQ(1, bit)
 
 port PORT(32, bit)
 	label = format("PORT%d.%d", __COMP_NUM, __INDEX)
-	update_on_write = 1
+	update_on_input = 1
 
 op update()
 	action = {

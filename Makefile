@@ -17,10 +17,20 @@ SOURCES=\
 CFLAGS=-g3 -Wall -fPIC -I. -DCOMPAT
 LDFLAGS=-L. -lcsim
 
+PLUGINS =
+export CSIMPATH=:.$(patsubst %,:%,$(PLUGINS))
+export PYTHONPATH=$(PWD)/python:../Orchid
+
+
 # additional goals
 ALL =
 CLEAN =
 DISTCLEAN =
+
+# Altera option
+ifdef WITH_ALTERA
+PLUGINS += altera
+endif
 
 # STM32 option
 ifdef WITH_STM32
@@ -53,9 +63,9 @@ OBJECTS=$(SOURCES:.c=.o)
 
 
 # rules
-all: gliss-all libcsim.a test-csim csim-run csim-server $(ALL)
+all: gliss-all libcsim.a test-csim csim-run csim-server $(ALL) plugins-all
 
-clean: gliss-clean $(CLEAN)
+clean: gliss-clean $(CLEAN) plugins-clean
 	-rm -rf $(OBJECTS) test-csim.o test-csim
 
 distclean: clean $(DISTCLEAN)
@@ -103,12 +113,28 @@ gliss-clean:
 	cd gliss; make clean
 
 
+# plugins
+plugins-all:
+	for p in $(PLUGINS); do cd $$p; make; done
+
+plugins-clean:
+	for p in $(PLUGINS); do cd $$p; make clean; done
+
+run:
+	@echo "CSIMPATH=$$CSIMPATH"
+	@echo "PYTHONPATH=$$PYTHONPATH"
+	./python/run.py samples/$(TEST).yaml samples/$(TEST).elf
+
+
 # STM32 rules
 stm32-all:
 	cd stm32; make all
 
 stm32-clean:
 	cd stm32; make clean
+
+
+# Altera
 
 
 # ATMEGA328P rules

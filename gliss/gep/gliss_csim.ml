@@ -80,16 +80,21 @@ let gen_code info s out =
 
 
 (** Get an attribute as an integer.
-	@param name		Attribute name.
-	@param atts		Attribute list. *)
+	@param name			Attribute name.
+	@param atts			Attribute list.
+	@return				Attribute as an integer or None if not defined.
+	@raise PreError		If the attribute is neither a constant, nor an integer. *)
 let get_int_att name atts =
+	let error _ = pre_error (sprintf "%s should be an integer constant!" name) in
 	match get_attr name atts with
 	| Some (ATTR_EXPR (_, e)) ->
-		(try
-			(match Sem.eval_const e with
-			| CARD_CONST x -> Some x
-			| _ -> None)
-		with PreError f -> None)
+		let x =
+			try Sem.eval_const e
+			with PreError _ ->
+				error () in
+		(match x with
+		| CARD_CONST x -> Some x
+		| _ -> error ())
 	| _ -> None
 
 
@@ -160,6 +165,12 @@ let get_registers info f dict =
 			| None -> pre_error "write_only must evaluate to 0 or to 1"
 			| Some x -> x = Int32.zero in*)
 
+		let update_on_write _ =
+			match get_int_att "update_on_write" atts with
+			| None							-> false
+			| Some x when x = Int32.zero	-> false
+			| Some _						-> true in
+
 		("count", out (fun _ -> sprintf "%d" count)) ::
 		("init", text init) ::
 		("intern", Templater.BOOL intern) ::
@@ -180,6 +191,7 @@ let get_registers info f dict =
 		("size", out (fun _ -> sprintf "%d" ((Sem.get_type_length typ)/8))) ::
 		("stride",  text stride) ::
 		("type", out (fun _ -> Toc.type_to_string (Toc.convert_type typ))) ::
+		("update_on_write", Templater.BOOL update_on_write) ::
 		dict in
 
 	Irg.iter
@@ -215,6 +227,12 @@ let get_ports info pmap f dict =
 				get_indexes (i + 1) f dict
 			end in
 
+		let update_on_input _ =
+			match get_int_att "update_on_input" atts with
+			| None							-> false
+			| Some x when x = Int32.zero	-> false
+			| Some _						-> true in
+
 		("base", text (fun out -> fprintf out "%d" (List.assoc name pmap))) ::
 		("count", text (fun out -> fprintf out "%d" count)) ::
 		("ctype", out (fun _ -> Toc.type_to_string (Toc.convert_type typ))) ::
@@ -224,6 +242,7 @@ let get_ports info pmap f dict =
 		("on_input", text on_input) ::
 		("on_update", text on_update) ::
 		("type", text (asis "CSIM_DIGITAL")) ::
+		("update_on_input", Templater.BOOL update_on_input) ::
 		dict in
 
 	Irg.iter
@@ -287,6 +306,16 @@ let make_top_dict comp info =
 		| Some 1 -> true
 		| _ -> false in
 
+	let gen_update out =
+		match Irg.get_symbol "update" with
+		| Irg.UNDEF -> ()
+		| Irg.AND_OP (_, [], atts) ->
+			(match get_attr "action" atts with
+			| None -> ()
+			| Some (ATTR_STAT (_, s)) -> gen_code info s out
+			| _ -> pre_error "action in update must be an attribute and define an action!")
+		| _ -> pre_error "update must an AND-OP without parameters" in
+
 	[
 		("comp", out (fun _ -> comp));
 		("COMP", out (fun _ -> String.uppercase_ascii comp));
@@ -298,7 +327,8 @@ let make_top_dict comp info =
 		("events", Templater.COLL (get_events info));
 		("register_count", text register_count);
 		("registers", Templater.COLL (get_registers info));
-		("io_comp", bool (fun _ -> io_comp))
+		("io_comp", bool (fun _ -> io_comp));
+		("update", Templater.TEXT gen_update)
 	]
 
 

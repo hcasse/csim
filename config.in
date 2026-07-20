@@ -3,6 +3,7 @@
 # WITH_STM32 = 1		# Generate code for STM32 board
 # WITH_PYTHON = 1		# Build Python module.
 # WITH_ATMEGA328P = 1	# Generate code for ATMEGA328P board
+# WITH_ALTERA = 1		# Generate components for Altera board
 
 # Generate code for ARM v5t core
 # ARMV5T_PATH=armv5t

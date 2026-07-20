@@ -12,6 +12,13 @@ OBJECTS = $(NMPS:.nmp=.o)
 
 all: libaltera.so
 
+libaltera.so: $(OBJECTS) altera.o
+	gcc -shared -o $@ $^
+
 clean:
 	-rm -f $(HEADERS) $(SOURCES) $(OBJECTS) altera.o libaltera.so
 
+%.c: %.nmp
+	$(GLISS) $(GLISS_FLAGS) $<
+
+.PRECIOUS: $(SOURCES)

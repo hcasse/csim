@@ -100,15 +100,6 @@ static void  $(comp)_reset(csim_inst_t *inst) {
 
 
 /**
- * Update the state of the component.
- * @param inst	Instance of the component.
- */
-void $(comp)_update(csim_inst_t *inst) {
-	$(comp)_inst_t *$(comp)_inst = ( $(comp)_inst_t *)inst;
-}
-
-
-/**
  * Construct an instance.
  * @param inst	Instance to construct.
  */
@@ -192,6 +183,10 @@ static void write_$(name)(csim_inst_t *inst, int num, csim_word_t val) {
 		$(on_write);
 		on_update_all(inst);
 	$(end)
+
+	$(if update_on_write)
+		csim_wakeup(inst);
+	$(end)
 }
 
 $(end)
@@ -259,17 +254,10 @@ $(foreach ports)
 
 static void on_input_$(name)(csim_port_inst_t *port, csim_value_type_t type, csim_value_t val) {
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)port->inst;
-	/*$(ctype) $(name) = __inst->$(name);
-	int ____INDEX = port->port - (ports + $(name)_BASE);
-	if (type == CSIM_DIGITAL)
-		$(name) = val.digital;
-	if (type == CSIM_ANALOG)
-		$(name) = val.analog;
-	if (type == CSIM_CLOCK)
-		$(name) = val.clock;
-	if (type == CSIM_SERIAL)
-		$(name) = val.serial;*/
 $(on_input)
+$(if update_on_input)
+	csim_wakeup(port->inst);
+$(end)
 }
 
 static void on_update_$(name)(csim_inst_t *inst) {
@@ -279,13 +267,19 @@ $(on_update)
 
 $(end)
 
+
+
 $(foreach events)
-/*$(name) event functions */
+/* $(name) event functions */
 
 static void on_update_$(name)(csim_inst_t *inst) {
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
 
 	$(on_update)
+
+	$(if update_on_input)
+		csim_wakeup(inst);
+	$(end)
 }
 
 static void on_trigger_$(name)(csim_evt_t *evt) {
@@ -296,6 +290,16 @@ static void on_trigger_$(name)(csim_evt_t *evt) {
 }
 
 $(end)
+
+
+/**
+ * Update the state of the component.
+ * @param inst	Instance of the component.
+ */
+void $(comp)_update(csim_inst_t *inst) {
+	$(comp)_inst_t *__inst = ( $(comp)_inst_t *)inst;
+	$(update)
+}
 
 $(if io_comp)
 
