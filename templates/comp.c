@@ -233,7 +233,7 @@ static csim_port_t ports[] = {
 		$(if multiple)
 			$(foreach indexes)
 				{
-					"$(name)$(index)",
+					"$(label)",
 					$(type),
 					on_input_$(name)
 				},

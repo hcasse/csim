@@ -98,6 +98,26 @@ let get_int_att name atts =
 	| _ -> None
 
 
+(** Get an attribute as a string.
+	@param name			Attribute name.
+	@param atts			Attribute list.
+	@return				Attribute as an integer or None if not defined.
+	@raise PreError		If the attribute is neither a constant, nor an integer. *)
+let get_str_att name atts =
+	let error _ = pre_error (sprintf "%s should be a string constant!" name) in
+
+	let rec lookup e =
+		match e with
+		| CONST(_, STRING_CONST x) -> Some x
+		| ELINE (_, _, e) -> lookup e
+		| _ -> error () in
+
+	match get_attr name atts with
+	| Some (ATTR_EXPR (_, e)) -> lookup e
+	| Some _ -> error ()
+	| _ -> None
+
+
 (** Build collection symbol for registers. *)
 let get_registers info f dict =
 
@@ -218,10 +238,19 @@ let get_ports info pmap f dict =
 			| Some (ATTR_STAT (_, s)) -> gen_code info s out
 			| _ -> pre_error "on_update must be an attribute and define an instruction!" in
 
+		let indexed_label i out =
+			let fmt =
+				match get_str_att "label" atts with
+				| None -> name ^ "%d"
+				| Some x -> x in
+			Str.global_replace (Str.regexp "%d") (string_of_int i) fmt in
+
 		let rec get_indexes i f dict =
+
 			if i < count then begin
 				f (
 					("index", text (fun out -> fprintf out "%d" i)) ::
+					("label", out (indexed_label i)) ::
 					dict
 				);
 				get_indexes (i + 1) f dict
@@ -233,10 +262,16 @@ let get_ports info pmap f dict =
 			| Some x when x = Int32.zero	-> false
 			| Some _						-> true in
 
+		let get_label out =
+			match get_str_att "label" atts with
+			| None -> name
+			| Some x -> x in
+
 		("base", text (fun out -> fprintf out "%d" (List.assoc name pmap))) ::
 		("count", text (fun out -> fprintf out "%d" count)) ::
 		("ctype", out (fun _ -> Toc.type_to_string (Toc.convert_type typ))) ::
 		("indexes", coll (get_indexes 0)) ::
+		("label", out get_label) ::
 		("multiple", bool (fun _ -> count > 1)) ::
 		("name", text (asis name)) ::
 		("on_input", text on_input) ::

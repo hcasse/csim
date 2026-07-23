@@ -34,7 +34,7 @@ reg ECR[1, word]
 port IRQ(1, bit)
 
 port PORT(32, bit)
-	label = format("PORT%d.%d", __COMP_NUM, __INDEX)
+	label = "P%d"
 	update_on_input = 1
 
 op update()

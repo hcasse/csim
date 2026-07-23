@@ -72,14 +72,15 @@ A port is described by:
 ```
 port ID ( COUNT, TYPE )
 	ATTRIBUTES
-	
+
 ```
 
 With _ID_ the identifier of the port, _COUNT_ the number of pins in the port and _TYPE_ the type of the port.
 
 The _ATTRIBUTES_ can be:
 
-* `label` = _STRING EXPRESSION_ -- to generate the name of a port pin for an array .
+* `label` = _STRING EXPRESSION_ -- to generate the name of a port pin for an array.
+	For array of ports, label has to contain `%d` that will be replaced by the port index.
 * `on_update` = { _CODE_ } -- code called each time a register is changed that may be impact the set of pins of the port.
 * `on_input` = { _CODE_ } -- code called each time the value as input of the port pin is changed.
 
@@ -88,14 +89,14 @@ All expressions and statements used in attributes can use the pre-defined variab
 * `__INDEX` -- index of the register when a register array is used.
 * `__COM_NUM` -- number associated with the current instance of the component.
 
-Notice that each time a port pin is changed (by assignint it), the emitted signal is send to the port connected with this one.
+Notice that each time a port pin is changed (by assigning it), the emitted signal is send to the port connected with this one.
 
 
 ## Events
 
- The event is an add-on of **CSim** to [NML](NMP.md) and aims to give the ability to simulate an event triggering after a set amount of time. 
+ The event is an add-on of **CSim** to [NML](NMP.md) and aims to give the ability to simulate an event triggering after a set amount of time.
 
-An event is described by : 
+An event is described by :
 
 ```
 event ID
@@ -104,7 +105,7 @@ event ID
 
 With _ID_ the identifier of the event.
 
-The _ATTRIBUTES_ can be: 
+The _ATTRIBUTES_ can be:
 
 * `on_update` = { _CODE_ } -- code called each time a register is changed that may be impact the event.
 * `on_trigger` = { _CODE_ } -- code called when the event trigger.
