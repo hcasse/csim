@@ -42,7 +42,7 @@ static void led_on_port(csim_port_inst_t *inst, csim_value_type_t type, csim_val
 
 ///
 csim_port_t led_ports[] = {
-	{ "input", CSIM_DIGITAL, led_on_port }
+	{ "IN", CSIM_DIGITAL, led_on_port }
 };
 
 ///

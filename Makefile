@@ -63,25 +63,25 @@ OBJECTS=$(SOURCES:.c=.o)
 
 
 # rules
-all: gliss-all libcsim.a test-csim csim-run csim-server $(ALL) plugins-all
+all: gliss-all libcsim.so test-csim csim-run csim-server $(ALL) plugins-all
 
 clean: gliss-clean $(CLEAN) plugins-clean
 	-rm -rf $(OBJECTS) test-csim.o test-csim
 
 distclean: clean $(DISTCLEAN)
-	-rm -rf test-csim test2 libcsim.a
+	-rm -rf test-csim test2 libcsim.so
 
-test-csim: test-csim.o libcsim.a
+test-csim: test-csim.o libcsim.so
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-csim-run: csim-run.o libcsim.a
+csim-run: csim-run.o libcsim.so
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-csim-server: server.o libcsim.a
+csim-server: server.o libcsim.so
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-libcsim.a: $(OBJECTS)
-	ar rcs $@ $(OBJECTS)
+libcsim.so: $(OBJECTS)
+	gcc -shared -o $@ $(OBJECTS)
 
 # source dependencies
 csim.o: csim.h
@@ -93,7 +93,7 @@ loader.o: csim.h yaml.h
 arm_core.o: csim.h
 led.o: csim.h
 button.o: csim.h
-csim-run.o: csim.h libcsim.a
+csim-run.o: csim.h
 server.o: csim.h
 
 FILES = \

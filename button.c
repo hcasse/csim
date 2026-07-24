@@ -43,7 +43,7 @@ void button_update(csim_port_inst_t *port, csim_value_type_t type, csim_value_t 
 }
 
 csim_port_t button_ports[] = {
-	{ "output", CSIM_DIGITAL, button_update }
+	{ "OUT", CSIM_DIGITAL, button_update }
 };
 
 static int button_display(char *buf, csim_iocomp_inst_t *inst) {

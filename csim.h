@@ -130,7 +130,6 @@ struct csim_port_inst_t {
 	csim_port_t *port;
 	csim_inst_t *inst;
 	csim_port_inst_t *link;
-	csim_value_t value;
 };
 
 
@@ -334,5 +333,8 @@ uint32_t csim_parse_uint(const char *str, int *err);
 	((csim_core_t *)(i)->inst.comp)->load(i, p)
 #define csim_core_memory(i) \
 	((csim_core_t *)(i)->inst.comp)->memory(i)
+
+#define csim_port_inst(inst, port) \
+	(&inst->ports[port - inst->comp->ports])
 
 #endif	/* CSIM_H */

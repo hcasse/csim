@@ -126,3 +126,21 @@ The loggin levels encompasses:
 * `CSIM_INFO`: log also information.
 * `CSIM_DEBUG`: log also debugging messages.
 * `CSIM_NOLOG`: no logging
+
+
+## Register
+
+Represents a component register possibly mapped in memory:
+* `name`: register name
+* `offset`: offset of the register relatively to the component base.
+* `size`: size in bits of register values.
+* `count`: for an array of registers, the count of registers in the array.
+* `stride`: for an array of registers, the size between register addresses.
+* `flags`: register flags.
+* `type`: type of values in the register.
+* `make_name`: build the name of the register relatively to the component instance.
+* `display`: generate the display of the value of a register.
+* `read`: read the value of the register from a memory access.
+* `write`: write the value to the register from a memory access.
+* `get`: get the value of the register without memory access.
+* `set`: set the value of the register without memory access.

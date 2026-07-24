@@ -4,9 +4,15 @@ components
     type: arm
   LED
     type: led
-    base: A0000000
-  GPIO:
+  BUTTON
+    type: button
+  GPIOA:
     type: altera/ParPort
     base: FF000000
 connect
-
+  -
+    from: GPIOA.P0
+    to: LED.IN
+  -
+    from: GPIOA.P1
+    to: BUTTON.OUT

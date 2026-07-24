@@ -11,7 +11,7 @@ CFLAGS = \
 	-I ..
 LDFLAGS = \
 	$(shell $(PYTHON_CONFIG) --ldflags) \
-	-L .. -lcsim
+	-L.. -lcsim
 ifdef ARMV5T_PATH
 LDFLAGS += -L../$(ARMV5T_PATH)/src -larm
 endif
@@ -24,14 +24,22 @@ all: $(MODULE)$(LIBEXT)
 
 $(MODULE)$(LIBEXT): python.c ../csim.c
 	gcc $(CFLAGS) -shared -o $@ $< $(LDFLAGS)
+	#-Wl,--whole-archive ../libcsim.a
 
 $(MODULE)$(LIBEXT): ../*.c
 
 clean:
 	-rm -rf $(MODULE)$(LIBEXT)
 
+export PYTHONPATH=$(PWD):$(PWD)/../../Orchid
+export CSIMPATH=$(PWD)/../altera
+export LD_LIBRARY_PATH=$(PWD):$(PWD)/..
+
 run:
-	$(PYTHON) run.py ../samples/sample$(NUM).yaml ../samples/sample$(NUM).elf
+	@echo "PYTHONPATH=$$PYTHONPATH"
+	@echo "CSIMPATH=$$CSIMPATH"
+	@echo "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH"
+	$(PYTHON) run.py ../samples/$(SAMPLE).yaml ../samples/$(SAMPLE).elf
 
 autodoc:
 	gnome-terminal -- pydoc3 -b

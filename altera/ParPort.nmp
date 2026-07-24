@@ -8,14 +8,21 @@ let version = "1.0"
 type bit = card(1)
 type word = card(32)
 
-reg DAR[1, word]
-	offset = 0x0
-	init = 0
-	update_on_write = 1
+let INPUT = 0
+let OUTPUT = 1
+
 
 reg DIR[1, word]
 	offset = 0x4
 	init = 0
+	update_on_write = 1
+
+reg DAR[1, word]
+	offset = 0x0
+	init = 0
+	on_write = {
+		__VALUE = (__VALUE & DIR) | (DAR & ~DIR);
+	}
 	update_on_write = 1
 
 reg IMR[1, word]
@@ -40,7 +47,7 @@ port PORT(32, bit)
 op update()
 	action = {
 		for i in 0..31 do
-			if DIR<i..i> == 0 then
+			if DIR<i..i> == INPUT then
 				DAR<i..i> = PORT[i];
 				if PORT[i] then
 					ECR<i..i> = 1;

@@ -855,35 +855,18 @@ void csim_send_digital(csim_inst_t *inst, csim_port_t *port, int digit) {
 	csim_board_t *b = inst->board;
 	assert(port->type == CSIM_DIGITAL);
 
-	/* compute index */
-	int i = port - inst->comp->ports;
-	assert(0 <= i && i < inst->comp->port_cnt);
-	csim_port_inst_t *pi = &inst->ports[i];
+	// get port instance
+	csim_port_inst_t *pi = csim_port_inst(inst, port);
 
-	/* update the port */
+	/* log operation */
 	if(CSIM_DEBUG <= b->level)
 		b->log(b, CSIM_DEBUG, "sending digital %d (%d) to %s of %s", digit, b->date, port->name, inst->name);
 
 	/* update distant port if any if required */
-	if(pi->value.digital != digit) {
-
-		// update port value
-		pi->value.digital = digit;
-
-		// update the link
-		if(pi->link != NULL) {
-
-			// store the value
-			int j = pi->link->port - pi->link->inst->comp->ports;
-			assert(0 <= j && j < pi->link->inst->comp->port_cnt);
-			csim_port_inst_t *pj = &pi->link->inst->ports[i];
-			pj->value.digital = digit;
-
-			// send the signal
-			pi->link->port->update(pi->link, CSIM_DIGITAL, pi->value);
-
-		}
-
+	if(pi->link != NULL) {
+		csim_value_t value;
+		value.digital = digit;
+		pi->link->port->update(pi->link, CSIM_DIGITAL, value);
 	}
 }
 
@@ -1079,7 +1062,7 @@ csim_component_t *csim_find_component(const char *name) {
 			snprintf(path, 512, "%s/%s", csim_path[i], libname);
 
 		// load it
-		handle = dlopen(path, RTLD_LAZY);
+		handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
 	}
 	if(handle == NULL) {
 		fprintf(stderr, "ERROR: cannot find plugin %s\n", libname);

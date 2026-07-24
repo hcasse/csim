@@ -6,12 +6,28 @@
 #include "csim-rt.h"
 
 #define ____COMP_NUM		(inst->number)
+
+/* useful macros */
+#define __now 		inst->board->date
+#define ____VALUE	val
+
+/* register accessors */
 $(foreach registers)
-#	define _$(NAME)	__inst->$(name)
+#define _$(NAME)	__inst->$(name)
 $(end)
+
+/* port accessors */
 $(foreach ports)
-#	define $(name)_BASE	$(base)
-#	define _$(name)	__inst->$(name)
+#define _$(name)	__inst->$(name)
+$(end)
+
+/* port bases */
+$(foreach ports)
+#define $(name)_BASE	$(base)
+$(end)
+
+/* port macros */
+$(foreach ports)
 #	define $(name)_PORT	&ports[$(name)_BASE]
 	$(if multiple)
 #		define $(name)_SET(i, x)	\
@@ -32,7 +48,6 @@ $(foreach ports)
 	$(end)
 $(end)
 
-#define __now inst->board->date
 
 
 
@@ -45,76 +60,36 @@ typedef struct  $(comp)_inst_t {
 	$(else)
 	csim_inst_t inst;
 	$(end)
+
+	/* registers */
     $(foreach registers)
-		$(if multiple)
-			$(type) $(name)[$(size)];
-		$(else)
-			$(type) $(name);
-		$(end)
+	$(if multiple)
+	$(type) $(name)[$(size)];
+	$(else)
+	$(type) $(name);
+	$(end)
     $(end)
+	/* ports */
     $(foreach ports)
-		$(if multiple)
-			$(ctype) $(name)[$(count)];
-		$(else)
-			$(ctype) $(name);
-		$(end)
-	$(end);
+	$(if multiple)
+	$(ctype) $(name)[$(count)];
+	$(else)
+	$(ctype) $(name);
+	$(end)
+	$(end)
 }  $(comp)_inst_t;
 
 
-/* pre-definitiion of port update functions */
+/* pre-definitiion of callbacks */
 $(foreach ports)
-	static void on_update_$(name)(csim_inst_t *inst);
+static void on_update_$(name)(csim_inst_t *inst);
 $(end)
-
-/* pre-definitiion of event update functions */
 $(foreach events)
-	static void on_update_$(name)(csim_inst_t *inst);
+static void on_update_$(name)(csim_inst_t *inst);
 $(end)
-
-/* pre-definitiion of event trigger functions */
 $(foreach events)
-	static void on_trigger_$(name)(csim_evt_t *evt);
+static void on_trigger_$(name)(csim_evt_t *evt);
 $(end)
-
-static void on_update_all(csim_inst_t *inst) {
-	$(foreach ports)
-		on_update_$(name)(inst);
-	$(end)
-	$(foreach events)
-		on_update_$(name)(inst);
-	$(end)
-}
-
-
-/**
- * Reset the instance.
- * @param inst	Instance to reset.
- */
-static void  $(comp)_reset(csim_inst_t *inst) {
-	$(comp)_inst_t *$(comp)_inst = ( $(comp)_inst_t *)inst;
-	$(foreach registers)
-	$(comp)_inst -> $(name) = $(init);
-	$(end)
-}
-
-
-/**
- * Construct an instance.
- * @param inst	Instance to construct.
- */
-static void $(comp)_construct(csim_inst_t *inst, csim_confs_t confs) {
-    $(comp)_inst_t * $(comp)_inst = ( $(comp)_inst_t *)inst;
-    $(comp)_reset(inst);
-}
-
-/**
- * Destruct the instance.
- * @param inst	Instance to destruct.
- */
-static void $(comp)_destruct(csim_inst_t *inst) {
-}
-
 
 $(foreach registers)
 $(if !intern)
@@ -131,63 +106,39 @@ static void display_$(name)(csim_inst_t *inst, int num, char *__buffer, int size
 }
 
 static csim_word_t read_$(name)(csim_inst_t *inst, int num) {
-	$(if is_read_only)
-		csim_log(inst->board, CSIM_WARN, "read of ${comp}.${name} that is read-only");
-	$(else)
-		$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
-		$(ifdef on_read)
-			$(on_read);
-		$(else)
-			$(if multiple)
-				return __inst->$(name)[num];
-			$(else)
-				return __inst->$(name);
-			$(end)
-		$(end)
-	$(end)
-}
-
-static csim_word_t get_$(name)(csim_inst_t *inst, int num) {
-	$(if is_write_only)
-		csim_log(inst->board, CSIM_WARN, "write of ${comp}.${name} that is write-only");
-	$(else)
-		$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
-		$(if multiple)
-			return __inst->$(name)[num];
-		$(else)
-			return __inst->$(name);
-		$(end)
-	$(end)
-}
-
-static void set_$(name)(csim_inst_t *inst, int num, csim_word_t val) {
+$(if is_read_only)
+	csim_log(inst->board, CSIM_WARN, "read of ${comp}.${name} that is read-only");
+	return 0;
+$(else)
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
-	$(if multiple)
-		if(__inst->$(name)[num] != val) {
-			__inst->$(name)[num] = val;
-			on_update_all(inst);
-		}
-	$(else)
-		if(__inst->$(name) != val) {
-			__inst->$(name) = val;
-			on_update_all(inst);
-		}
-	$(end)
+$(ifdef on_read)
+	$(on_read);
+$(end)
+	return __inst->$(name)$(if multiple)[num]$(end);
+$(end)
 }
 
 static void write_$(name)(csim_inst_t *inst, int num, csim_word_t val) {
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
-	set_$(name)(inst, num, val);
-
-	$(ifdef on_write)
-		$(on_write);
-		on_update_all(inst);
-	$(end)
-
-	$(if update_on_write)
+$(ifdef on_write)$(on_write)$(end)
+	int updated = val != _$(NAME)$(if multiple)[num]$(end);
+	_$(NAME)$(if multiple)[num]$(end) = val;
+$(if update_on_write)
+	if(updated)
 		csim_wakeup(inst);
-	$(end)
+$(end)
 }
+
+static csim_word_t get_$(name)(csim_inst_t *inst, int num) {
+	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+	return __inst->$(name)$(if multiple)[num]$(end);
+}
+
+static void set_$(name)(csim_inst_t *inst, int num, csim_word_t val) {
+	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+	__inst->$(name)$(if multiple)[num]$(end) = val;
+}
+
 
 $(end)
 $(end)
@@ -229,23 +180,23 @@ $(end)
  * Array of ports.
  */
 static csim_port_t ports[] = {
-	$(foreach ports)
-		$(if multiple)
-			$(foreach indexes)
-				{
-					"$(label)",
-					$(type),
-					on_input_$(name)
-				},
-			$(end)
-		$(else)
-			{
-				"$(name)",
-				$(type),
-				on_input_$(name)
-			},
-		$(end)
-	$(end)
+$(foreach ports)
+$(if multiple)
+$(foreach indexes)
+	{
+		"$(label)",
+		$(type),
+		on_input_$(name)
+	},
+$(end)
+$(else)
+	{
+		"$(name)",
+		$(type),
+		on_input_$(name)
+	},
+$(end)
+$(end)
 };
 
 
@@ -254,29 +205,25 @@ $(foreach ports)
 
 static void on_input_$(name)(csim_port_inst_t *port, csim_value_type_t type, csim_value_t val) {
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)port->inst;
-$(on_input)
+	$(if multiple)int num = port - port->inst->ports - $(name)_BASE;$(end)
+
+	if(val.digital != _$(name)$(if multiple)[num]$(end)) {
+		_$(name)$(if multiple)[num]$(end) = val.digital;
+		$(on_input)
 $(if update_on_input)
-	csim_wakeup(port->inst);
+		csim_wakeup(port->inst);
 $(end)
-}
-
-static void on_update_$(name)(csim_inst_t *inst) {
-	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
-$(on_update)
+	}
 }
 
 $(end)
-
-
 
 $(foreach events)
 /* $(name) event functions */
 
 static void on_update_$(name)(csim_inst_t *inst) {
 	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
-
 	$(on_update)
-
 	$(if update_on_input)
 		csim_wakeup(inst);
 	$(end)
@@ -291,6 +238,47 @@ static void on_trigger_$(name)(csim_evt_t *evt) {
 
 $(end)
 
+
+/**
+ * Reset the instance.
+ * @param inst	Instance to reset.
+ */
+static void  $(comp)_reset(csim_inst_t *inst) {
+	$(comp)_inst_t *__inst = ( $(comp)_inst_t *)inst;
+$(foreach registers)
+$(if !multiple)
+	_$(name) = $(init);
+$(else)
+	for(int i = 0; i < $(count); i++)
+		_$(name)[i] = $(init);
+$(end)
+$(end)
+
+$(foreach ports)
+$(if !multiple)
+	_$(name) = 0;
+$(else)
+	for(int i = 0; i < $(count); i++)
+		_$(name)[i] = 0;
+$(end)
+$(end)
+}
+
+/**
+ * Construct an instance.
+ * @param inst	Instance to construct.
+ */
+static void $(comp)_construct(csim_inst_t *inst, csim_confs_t confs) {
+	$(comp)_inst_t * $(comp)_inst = ( $(comp)_inst_t *)inst;
+	$(comp)_reset(inst);
+}
+
+/**
+ * Destruct the instance.
+ * @param inst	Instance to destruct.
+ */
+static void $(comp)_destruct(csim_inst_t *inst) {
+}
 
 /**
  * Update the state of the component.

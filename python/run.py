@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import sys
+
+sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
 
 from csim import Board, BoardError, CSIM_DEBUG
 from csim.ui.app import MyApp
