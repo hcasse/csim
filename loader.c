@@ -19,6 +19,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <ctype.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -47,6 +49,36 @@ typedef struct {
 } loader_t;
 
 /**
+ * Print an error.
+ */
+static yaml_next_t error(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	fprintf(stderr, "ERROR: ");
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+	return YAML_ERROR;
+}
+
+/**
+ * Trim the passed string.
+ */
+static char *trim(char *str) {
+
+	// trim left
+	while(*str && isblank(*str))
+		str++;
+
+	// trim right
+	char *p = str + strlen(str) - 1;
+	while(p >= str && isblank(*p))
+		p--;
+	*(p + 1) = '\0';
+
+	return str;
+}
+
+/**
  * Scan a port in the form INSTANCE.PORT.
  * @param loader	Current loader.
  * @param val		YAML value to scan.
@@ -62,10 +94,8 @@ yaml_next_t scan_port(loader_t *loader, const char *val, csim_inst_t **inst, csi
     char buf[64];
     strncpy(buf, val, 64);
     char *p = strchr(buf, '.');
-    if (p == NULL) {
-        fprintf(stderr, "ERROR: '.' is missing.\n");
-        return YAML_ERROR;
-    }
+    if (p == NULL)
+        return error("'.' is missing.\n");
     *p = '\0';
 
     // find instance
@@ -74,10 +104,8 @@ yaml_next_t scan_port(loader_t *loader, const char *val, csim_inst_t **inst, csi
             *inst = loader->board->insts[i];
             break;
         }
-    if (*inst == NULL) {
-        fprintf(stderr, "ERROR: cannot find instance %s.\n", buf);
-        return YAML_ERROR;
-    }
+    if (*inst == NULL)
+		return error("ERROR: cannot find instance %s.\n", buf);
 
     // find port
     for (unsigned i = 0; i < (*inst)->comp->port_cnt; i++) {
@@ -86,13 +114,36 @@ yaml_next_t scan_port(loader_t *loader, const char *val, csim_inst_t **inst, csi
             break;
         }
     }
-    if (*port == NULL) {
-        fprintf(stderr, "ERROR: cannot find port %s.\n", p + 1);
-        return YAML_ERROR;
-    }
+    if (*port == NULL)
+        return error("ERROR: cannot find port %s.\n", p + 1);
 
     // all is fine
     return YAML_DONE;
+}
+
+/**
+ * Parse a link expression.
+ */
+static yaml_next_t scan_link(loader_t *loader, const char *link) {
+	int len = strlen(link);
+	char buf[len + 1];
+	strcpy(buf, link);
+	char *p = strstr(buf, "--");
+	if(p == NULL)
+		return error("malformed link: '%s'", link);
+	*p = '\0';
+	yaml_next_t res = scan_port(loader, trim(buf), &loader->from_inst, &loader->from_port);
+	if(res != YAML_DONE)
+		return res;
+	res = scan_port(loader, trim(p + 2), &loader->to_inst, &loader->to_port);
+	if(res != YAML_DONE)
+		return res;
+	csim_connect(loader->from_inst, loader->from_port, loader->to_inst, loader->to_port);
+	loader->from_inst = NULL;
+	loader->from_port = NULL;
+	loader->to_inst = NULL;
+	loader->to_port = NULL;
+	return YAML_DONE;
 }
 
 ///
@@ -101,12 +152,7 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
     switch (loader->state) {
 
     case TOP:
-        /* if (strcmp(key, "name") == 0) {
-            loader->name = strdup(val);
-            return YAML_DONE;
-        }
-        else */ if (strcmp(key, "components") == 0) {
-            // loader->board = csim_new_board(loader->name);
+			if (strcmp(key, "components") == 0) {
 			loader->board = csim_new_board_ext(loader->top_confs);
             loader->board->level = CSIM_ERROR;
             loader->state = IN_COMPS;
@@ -159,8 +205,12 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
 
 static yaml_next_t on_item(const char *val, void *data) {
     loader_t *loader = (loader_t *)data;
-    loader->state = IN_LINK;
-    return YAML_MAP;
+	if(*val == '\0') {
+		loader->state = IN_LINK;
+		return YAML_MAP;
+	}
+	else
+		return scan_link(loader, val);
 }
 
 ///
@@ -196,7 +246,12 @@ static void on_end(void *data) {
         break;
 
     case IN_LINK:
-        csim_connect(loader->from_inst, loader->from_port, loader->to_inst, loader->to_port);
+		if(loader->from_inst == NULL)
+			fprintf(stderr, "WARNING: no source for a link!");
+		else if(loader->to_inst == NULL)
+			fprintf(stderr, "WARNING: no destination for a link!");
+		else
+			csim_connect(loader->from_inst, loader->from_port, loader->to_inst, loader->to_port);
         loader->from_inst = NULL;
         loader->from_port = NULL;
         loader->to_inst = NULL;

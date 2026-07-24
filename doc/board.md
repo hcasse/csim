@@ -37,7 +37,14 @@ Notice that the _ID_ must be unique throughout the board description.
 
 ## Connections
 
-A _connection_ represents the link between port pins of componens. Their format is the following:
+A _connection_ represents the link between port pins of componens. There are two format.
+
+The new format is now the preferred one:
+```yaml
+  - ID.PORT -- ID.PORT
+```
+
+And the old one is still supported:
 
 ```yaml
   -
