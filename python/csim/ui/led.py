@@ -3,7 +3,7 @@
 import os.path
 
 import csim
-from csim.ui import load_svg
+from csim import ui
 import libcsim
 
 from orchid import *
@@ -15,8 +15,8 @@ class LED(Content):
 
 	def  __init__(self, x, y, color, **args):
 		if LED.IMAGE == None:
-			LED.IMAGE = load_svg(os.path.join(os.path.dirname(__file__), "newled.svg"))
-		Content.__init__(self, LED.IMAGE, **args)
+			LED.IMAGE = ui.load_svg(os.path.join(os.path.dirname(__file__), "newled.svg"))
+		Content.__init__(self, LED.IMAGE.content, **args)
 		self.color = color
 		self.state = False
 		#self.scale(.1)
@@ -26,10 +26,6 @@ class LED(Content):
 	def set(self, color1, color2):
 		if self.parent.online():
 			id = self.get_id()
-			#self.set_direct_attr(id + "_path1", "fill", color1)
-			#self.set_direct_attr(id + "_path2", "fill", color1)
-			#self.set_direct_attr(id + "_stop1", "style", "stop-color:" + color2)
-			#self.set_direct_attr(id + "_stop2", "style", "stop-color:" + color2 + ";stop-opacity:0")
 			self.set_direct_attr(id + "-back", "style", "fill:" + color1)
 
 	def paint(self):
@@ -56,19 +52,21 @@ class LED(Content):
 			self.on()
 
 
-class Component(csim.IOComponent):
+class Component(ui.Component):
 
 	def __init__(self, board, inst):
-		csim.IOComponent.__init__(self, board, inst)
+		ui.Component.__init__(self, board, inst)
 		confs = self.get_confs()
-		self.x = confs.get_int("x", 0)
-		self.y = confs.get_int("y", 0)
 		self.color = confs.get("color", "#FF0000")
 
 	def install(self, canvas):
-		self.shape = LED(self.x, self.y, self.color)
+		(x, y) = self.get_pos()
+		self.shape = LED(x, y, self.color)
 		canvas.record(self.shape)
 
 	def update(self, ress, state):
 		if state != self.shape.state:
 			self.shape.invert()
+
+	def get_size(self):
+		return (LED.IMAGE.w, LED.IMAGE.H)

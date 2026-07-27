@@ -6,6 +6,8 @@ components
     type: led
   BUTTON
     type: button
+    x: 20
+    y: 20
   GPIOA:
     type: altera/ParPort
     base: FF000000

@@ -44,6 +44,7 @@ class BoardError(Exception):
 
 
 class Confs:
+	"""Access to a configuration."""
 
 	def __init__(self, confs):
 		self.map = {}
@@ -58,7 +59,11 @@ class Confs:
 
 	def get_int(self, name, default = 0):
 		try:
-			return int(self.get(name, default))
+			val = self.get(name, default)
+			if val is None:
+				return None
+			else:
+				return int(val)
 		except ValueError:
 			raise BoardError(f"{name} should be a int!")
 

@@ -1093,7 +1093,6 @@ csim_component_t *csim_find_component(const char *name) {
 	const char *p = strchr(name, '/');
 	if(p == NULL)
 		return NULL;
-	fprintf(stderr, "DEBUG: load %s\n", name);
 
 	// build the plug-in name
 	char lib[32];
