@@ -40,32 +40,6 @@
 
 /****** Board ******/
 
-/*csim_component_t *comps[] = {
-        &led_component.comp,
-        &button_component.comp,
-        &arm_component.comp,
-        NULL
-};*/
-
-/*typedef struct {
-        enum {
-                TOP,
-                IN_COMPS,
-                IN_COMP,
-                IN_CONNECT,
-                IN_LINK
-        } state;
-        csim_board_t *board;
-        csim_memory_t *mem;
-        const char *name, *type;
-        char key;
-        arm_address_t base;
-        csim_inst_t *from_inst, *to_inst;
-        csim_port_t *from_port, *to_port;
-        int conf_cnt;
-        char *confs[32];
-} loader_t;*/
-
 int VERBOSE = 0;
 
 /****** Simulator ******/
@@ -143,8 +117,7 @@ void print_state(csim_board_t *board, int clear) {
  * Display the options.
  */
 void print_help() {
-    fprintf(stderr, "SYNTAX: test2 FICHIER.elf\n");
-    fprintf(stderr, "\t-b, -board BOARD-PATH: select the board descriptor to use.\n");
+    fprintf(stderr, "SYNTAX: csim-run BOARD.yaml EXEC.elf\n");
     fprintf(stderr, "\t-h, -help: displays help message.\n");
     fprintf(stderr, "\t-v: verbose mode.\n");
 }
@@ -158,24 +131,20 @@ int main(int argc, const char *argv[]) {
     /* parse arguments */
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] != '-') {
-            if (exec != NULL) {
+			if(board_path == NULL)
+				board_path = argv[i];
+			else if(exec == NULL)
+				exec = argv[i];
+			else {
                 print_help();
                 fprintf(stderr, "ERROR: several executable provided: %s\n", argv[1]);
                 exit(1);
-            } else
-                exec = argv[i];
+            }
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-help") == 0) {
             print_help();
             exit(0);
-        } else if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "-board") == 0) {
-            i++;
-            if (i >= argc) {
-                print_help();
-                fprintf(stderr, "ERROR: -b, -board requires an argument.\n");
-                exit(1);
-            }
-            board_path = argv[i];
-        } else if (strcmp(argv[i], "-v") == 0)
+        }
+        else if (strcmp(argv[i], "-v") == 0)
             VERBOSE = 1;
         else {
             print_help();
@@ -185,7 +154,12 @@ int main(int argc, const char *argv[]) {
     }
 
     /* check arguments */
-    if (exec == NULL) {
+	if(board_path == NULL) {
+		print_help();
+		fprintf(stderr, "ERROR: board needed!\n");
+		exit(1);
+	}
+	if(exec == NULL) {
         print_help();
         fprintf(stderr, "ERROR: executable needed!\n");
         exit(1);
@@ -193,8 +167,8 @@ int main(int argc, const char *argv[]) {
 
     /* build the board */
     csim_board_t *board;
-    char path[256];
-    if(board_path == NULL) {
+    //char path[256];
+    /*if(board_path == NULL) {
         int l = strlen(exec);
         if(strcmp(".elf", exec + l - 4) == 0) {
             strncpy(path, exec, l - 4);
@@ -223,21 +197,24 @@ int main(int argc, const char *argv[]) {
         csim_new_component_ext(board, &button_component.comp, button_conf);
         board->level = CSIM_ERROR;
     }
-    else {
-        if (VERBOSE)
-            fprintf(stderr, "loading board from %s\n", board_path);
-        board = csim_load_board(board_path);
-        if(board == NULL) {
-            fprintf(stderr, "ERROR: cannot load the board!\n");
-            exit(3);
-        }
-        if(board->cores == NULL) {
-            fprintf(stderr, "ERROR: no core in this board!\n");
-            exit(2);
-        }
-        else
-            core = board->cores;
-    }
+    else {*/
+	csim_level_t level = CSIM_INFO;
+	if (VERBOSE) {
+		fprintf(stderr, "loading board from %s\n", board_path);
+		level = CSIM_DEBUG;
+	}
+	board = csim_load_board_ext(board_path, level);
+	if(board == NULL) {
+		fprintf(stderr, "ERROR: cannot load the board!\n");
+		exit(3);
+	}
+	if(board->cores == NULL) {
+		fprintf(stderr, "ERROR: no core in this board!\n");
+		exit(2);
+	}
+	else
+		core = board->cores;
+    //}
 
     // load the executable
     int rc = csim_core_load(core, exec);

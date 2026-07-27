@@ -9,6 +9,7 @@ components
   GPIOA:
     type: altera/ParPort
     base: FF000000
+    DIR: 0b00000001
 connect
   - GPIOA.P0 -- LED.IN
   - GPIOA.P1 -- BUTTON.OUT

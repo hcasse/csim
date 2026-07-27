@@ -90,6 +90,7 @@ typedef struct csim_inst_t csim_inst_t;
 typedef struct csim_iocomp_t csim_iocomp_t;
 typedef struct csim_iocomp_inst_t csim_iocomp_inst_t;
 typedef struct csim_port_inst_t csim_port_inst_t;
+typedef struct csim_init_t csim_init_t;
 typedef union csim_value_t csim_value_t;
 typedef struct csim_iostate_t csim_iostate_t;
 typedef struct csim_ioinfo_t csim_ioinfo_t;
@@ -148,6 +149,12 @@ struct csim_evt_t {
 
 typedef const char **csim_confs_t;
 
+struct csim_init_t {
+	csim_init_t *next;
+	csim_reg_t *reg;
+	uint32_t val;
+};
+
 struct csim_component_t {
 	struct csim_component_t *next;
 	const char *name;
@@ -177,6 +184,7 @@ struct csim_inst_t {
 	csim_board_t *board;
 	csim_port_inst_t *ports;
 	csim_confs_t confs;
+	csim_init_t *inits;
 };
 
 
@@ -273,6 +281,7 @@ csim_board_t *csim_new_board(const char *name);
 csim_board_t *csim_new_board_ext(csim_confs_t conf);
 void csim_delete_board(csim_board_t *board);
 csim_board_t *csim_load_board(const char *path);
+csim_board_t *csim_load_board_ext(const char *path, csim_level_t level);
 void csim_reset_board(csim_board_t *board);
 
 csim_component_t *csim_find_component(const char *name);

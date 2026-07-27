@@ -20,8 +20,10 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <memory.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,6 +101,34 @@ static csim_confs_t csim_copy_confs(csim_confs_t confs) {
 
 	return copy;
 }
+
+/**
+ * Parse the provided string for an integer supporint decimal, 0x hedaxdecimal
+ * and 0b binary.
+ */
+static uint32_t parse_int(const char *str) {
+
+	// remove spaces
+	while(isblank(*str))
+		str++;
+
+	// compute base
+	int base = 10;
+	if(str[0] == '0')
+		switch(str[1]) {
+		case 'x': case 'X':
+			base = 16;
+			str += 2;
+			break;
+		case 'b': case 'B':
+			base = 2;
+			str += 2;
+		}
+
+	// perform conversion
+	return strtoul(str, NULL, base);
+}
+
 
 /**
  * @defgroup csim Simulation Module
@@ -222,7 +252,7 @@ void csim_log(csim_board_t *board, csim_level_t level, const char *msg, ...) {
 		"FATAL  "
 	};
 
-	if(level < board->level)
+	if(board->level > level)
 		return;
 
 	va_list args;
@@ -545,12 +575,13 @@ void csim_delete_board(csim_board_t *board) {
  */
 void csim_reset_board(csim_board_t *board) {
 
-	/* reset memory */
-	//csim_mem_reset(board->mem);
-
 	/* reset all component instances */
-	for(int i = 0; i < board->inst_cnt; i++)
+	for(int i = 0; i < board->inst_cnt; i++) {
 		board->insts[i]->comp->reset(board->insts[i]);
+		for(csim_init_t *init = board->insts[i]->inits; init; init = init->next)
+			for(int j = 0; j < init->reg->count; j++)
+				init->reg->set(board->insts[i], j, init->val);
+	}
 
 	/* reset time */
 	board->date = 0;
@@ -617,6 +648,7 @@ void csim_default_update(csim_inst_t *inst) {
  */
 csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp, csim_confs_t confs) {
 	csim_confs_t my_confs = csim_copy_confs(confs);
+	csim_init_t *inits = NULL;
 
 	/* parse configuration */
 	const char *name = "no name";
@@ -629,6 +661,20 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 		else if(strcmp(confs[i], "base") == 0) {
 			base = strtoul(confs[i+1], NULL, 16);
 			board->log(board, CSIM_DEBUG, "base=%08x", base);
+		}
+		else {
+			for(int j = 0; j < comp->reg_cnt; j++) {
+				if(strcmp(confs[i], comp->regs[j].name) == 0) {
+					csim_init_t *init = (csim_init_t *)malloc(sizeof(csim_init_t));
+					init->next = inits;
+					inits = init;
+					init->reg = &comp->regs[j];
+					init->val = parse_int(confs[i+1]);
+					if(board->level <= CSIM_DEBUG)
+						board->log(board, CSIM_DEBUG, "init %s = %08x (%s)\n", confs[i], init->val, confs[i+1]);
+					break;
+				}
+			}
 		}
 
 	/* build the instance */
@@ -648,6 +694,7 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	}
 	inst->id = board->inst_cnt;
 	inst->confs = my_confs;
+	inst->inits = inits;
 
 	/* determine number in the component instances */
 	inst->number = 0;
@@ -681,6 +728,9 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
 	if(CSIM_DEBUG >= board->level)
 		board->log(board, CSIM_INFO, "new instance %s of %s at %08x", name, comp->name, name);
 	comp->construct(inst, confs);
+	for(csim_init_t *init = inits; init; init = init->next)
+		for(int j = 0; j < init->reg->count; j++)
+			init->reg->set(inst, j, init->val);
 
 	/* record the IO registers */
 	if(board->cores != NULL)
@@ -1043,10 +1093,12 @@ csim_component_t *csim_find_component(const char *name) {
 	const char *p = strchr(name, '/');
 	if(p == NULL)
 		return NULL;
+	fprintf(stderr, "DEBUG: load %s\n", name);
 
 	// build the plug-in name
 	char lib[32];
 	strncpy(lib, name, p - name);
+	lib[p - name] = '\0';
 	char libname[256];
 	snprintf(libname, 256, "lib%s.so", lib);
 

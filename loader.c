@@ -46,6 +46,7 @@ typedef struct {
     const char *confs[32];
 	int top_conf_cnt;
 	const char *top_confs[32];
+	csim_level_t level;
 } loader_t;
 
 /**
@@ -154,7 +155,8 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
     case TOP:
 			if (strcmp(key, "components") == 0) {
 			loader->board = csim_new_board_ext(loader->top_confs);
-            loader->board->level = CSIM_ERROR;
+			loader->board->level = loader->level;
+            //loader->board->level = CSIM_ERROR;
             loader->state = IN_COMPS;
             return YAML_MAP;
         }
@@ -264,22 +266,28 @@ static void on_end(void *data) {
     }
 }
 
-/**
- * Called when an error in YAML parsing is found.
- * @param msg	Message.
- * @param data	Application data.
- */
-//static void csim_loader_on_error(const char *msg, void *data) { fprintf(stderr, "%s\n", msg); }
 
 /**
  * Load the content of a board from given file.
  *
  * In case of error, display it and stop the program.
  * @param path		Path to read board from.
- * @param mem		Memory to use for I/O registers.
  * @return			Created board or NULL if there is an error.
  */
 csim_board_t *csim_load_board(const char *path) {
+	return csim_load_board_ext(path, CSIM_INFO);
+}
+
+
+/**
+ * Load the content of a board from given file.
+ *
+ * In case of error, display it and stop the program.
+ * @param path		Path to read board from.
+ * @param level		Log level to use.
+ * @return			Created board or NULL if there is an error.
+ */
+csim_board_t *csim_load_board_ext(const char *path, csim_level_t level) {
 
 	// prepare handler data
 	loader_t loader = {
@@ -296,7 +304,8 @@ csim_board_t *csim_load_board(const char *path) {
 		0, 				// conf_cnt
 		{ NULL },		// confs
 		0,				// top_conf_cnt
-		{ NULL }		// top_confs
+		{ NULL },		// top_confs
+		level			// log level
 	};
 
 	// build and install handler

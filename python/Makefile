@@ -41,5 +41,11 @@ run:
 	@echo "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH"
 	$(PYTHON) run.py ../samples/$(SAMPLE).yaml ../samples/$(SAMPLE).elf
 
+debug:
+	@echo "PYTHONPATH=$$PYTHONPATH"
+	@echo "CSIMPATH=$$CSIMPATH"
+	@echo "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH"
+	$(PYTHON) run.py ../samples/$(SAMPLE).yaml ../samples/$(SAMPLE).elf --debug
+
 autodoc:
 	gnome-terminal -- pydoc3 -b
