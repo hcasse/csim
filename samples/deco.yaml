@@ -1,0 +1,20 @@
+name: deco
+components
+  CORE
+    type: arm
+  BUTTON
+    type: button
+    x: 100
+    y: 100
+  LED1
+    type: led
+    pos: right of BUTTON
+  LED2
+    type: led
+    pos: left of BUTTON
+  LED3
+    type: led
+    pos: below of BUTTON
+  LED4
+    type: led
+    pos: above of BUTTON

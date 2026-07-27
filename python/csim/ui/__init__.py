@@ -47,18 +47,19 @@ def load_svg(path):
 			try:
 				w = float(pat.group(1))
 				h = float(pat.group(2))
-				size = (w, h)
+				return (w, h)
 			except ValueError:
 				pass
+		return size
 
 	with open(path) as input:
 		l = input.readline()
 		while not l.startswith("<svg"):
 			l = input.readline()
-		look_size(l)
+		size = look_size(l)
 		while not l.endswith(">\n"):
 			l = input.readline()
-			look_size(l)
+			size = look_size(l)
 		l = input.readline()
 		while not l.startswith("</svg>"):
 			buf.write(l)
@@ -83,6 +84,54 @@ csim.COMPONENTS[csim.CSIM_IO] = make_io
 class Component(csim.IOComponent):
 	"""A component ready to be displayed in Orchid."""
 
+	POSITIONS = None
+
+	@staticmethod
+	def _init_pos():
+		if Component.POSITIONS is None:
+
+			def _right_of(display, comp, rel):
+				(x, y) = rel.get_pos()
+				(w, h) = rel.get_size()
+				return (x + w + display.get_xspace(), y)
+
+			def _left_of(display, comp, rel):
+				(x, y) = rel.get_pos()
+				(w, h) = comp.get_size()
+				return (x - w - display.get_xspace(), y)
+
+			def _below_of(display, comp, rel):
+				(x, y) = rel.get_pos()
+				(w, h) = rel.get_size()
+				return (x, y + h + display.get_yspace())
+
+			def _above_of(display, comp, rel):
+				(x, y) = rel.get_pos()
+				(w, h) = comp.get_size()
+				return (x, y - h - display.get_yspace())
+
+			Component.POSITIONS = {
+				"right-of": _right_of,
+				"left-of": _left_of,
+				"below-of": _below_of,
+				"above-of": _above_of
+			}
+
+	def _get_pos(self, display, pos):
+		"""Convert pos attribute to actual position."""
+		args = pos.split()
+		if not args:
+			return (0, 0)
+		rel = display.find(args[-1])
+		if rel is None:
+			return (0, 0)
+		key = "-".join(args[0:-1]).lower()
+		Component._init_pos()
+		try:
+			return Component.POSITIONS[key](display, self, rel)
+		except KeyError:
+			return (0, 0)
+
 	def __init__(self, board, inst):
 		csim.IOComponent.__init__(self, board, inst)
 		self.x = self.get_confs().get_int("x", None)
@@ -98,10 +147,16 @@ class Component(csim.IOComponent):
 
 	def map(self, display):
 		"""Called to make the component to display on the canavas."""
-		if self.x is None:
-			self.x = 0
-		if self.y is None:
-			self.y = 0
+		if self.x is None or self.y is None:
+			pos = self.get_confs().get("pos")
+			if pos is None:
+				pos = (0, 0)
+			else:
+				pos = self._get_pos(display, pos)
+			if self.x is None:
+				self.x = pos[0]
+			if self.y is None:
+				self.y = pos[1]
 
 
 class Display(svg.Canvas):

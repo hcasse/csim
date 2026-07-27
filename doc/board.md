@@ -82,3 +82,14 @@ It is made of two components:
 
 Both components are contected from port `output` of `BUTTON` to port `input` of `LED`. Funny, this means that when the button pushed, the LED will be lighted on (without the action of the program).
 
+
+## Lookup
+
+Component position can be fixed using attributes:
+
+* `x:` _INT_ - X position.
+* `y:` _INT_ - Y position.
+* `pos:`: _POS_ `of` _NAME_ - allows to have a position relative to another component (_NAME_).
+	Positions _POS_ encompasses `right`, `left`, `below`, `above`.
+
+

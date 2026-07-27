@@ -11,12 +11,9 @@ from orchid.svg import Canvas, Content
 from orchid.util import Buffer
 
 class LED(Content):
-	IMAGE = None
 
-	def  __init__(self, x, y, color, **args):
-		if LED.IMAGE == None:
-			LED.IMAGE = ui.load_svg(os.path.join(os.path.dirname(__file__), "newled.svg"))
-		Content.__init__(self, LED.IMAGE.content, **args)
+	def  __init__(self, image, x, y, color, **args):
+		Content.__init__(self, image.content, **args)
 		self.color = color
 		self.state = False
 		#self.scale(.1)
@@ -53,6 +50,7 @@ class LED(Content):
 
 
 class Component(ui.Component):
+	IMAGE = None
 
 	def __init__(self, board, inst):
 		ui.Component.__init__(self, board, inst)
@@ -61,7 +59,7 @@ class Component(ui.Component):
 
 	def install(self, canvas):
 		(x, y) = self.get_pos()
-		self.shape = LED(x, y, self.color)
+		self.shape = LED(Component.IMAGE, x, y, self.color)
 		canvas.record(self.shape)
 
 	def update(self, ress, state):
@@ -69,4 +67,9 @@ class Component(ui.Component):
 			self.shape.invert()
 
 	def get_size(self):
-		return (LED.IMAGE.w, LED.IMAGE.H)
+		return (self.IMAGE.w * .2, self.IMAGE.h * .2)
+
+	def map(self, display):
+		if Component.IMAGE is None:
+			Component.IMAGE = ui.load_svg(os.path.join(os.path.dirname(__file__), "newled.svg"))
+		ui.Component.map(self, display)

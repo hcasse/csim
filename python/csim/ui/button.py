@@ -23,14 +23,13 @@ class Component(ui.Component):
 			"%s-push" % self.content.get_id(), "fill", "#000000")
 		self.do_input(1, 0)
 
-	def install(self, canvas):
-		self.canvas = canvas
-
-		# load image
+	def map(self, display):
 		if Component.IMAGE == None:
 			Component.IMAGE = ui.load_svg(os.path.join(os.path.dirname(__file__), "button.svg"))
+		ui.Component.map(self, display)
 
-		# build the UI
+	def install(self, canvas):
+		self.canvas = canvas
 		self.content = canvas.content(Component.IMAGE.content)
 		self.content.scale(2)
 		(x, y) = self.get_pos()
@@ -39,4 +38,4 @@ class Component(ui.Component):
 		self.content.add_event("onmouseup", self.on_release)
 
 	def get_size(self):
-		return (self.IMAGE.w, self.IMAGE.h)
+		return (self.IMAGE.w * 2, self.IMAGE.h * 2)

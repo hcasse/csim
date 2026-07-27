@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="77.035522mm"
-   height="104.16769mm"
-   viewBox="0 0 77.035522 104.16769"
+   width="89.626427mm"
+   height="162.39951mm"
+   viewBox="0 0 89.626426 162.39951"
    version="1.1"
    id="svg5"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
@@ -25,8 +25,8 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.84096521"
-     inkscape:cx="114.15454"
-     inkscape:cy="181.93381"
+     inkscape:cx="136.74763"
+     inkscape:cy="304.41212"
      inkscape:window-width="1920"
      inkscape:window-height="1128"
      inkscape:window-x="0"
@@ -105,7 +105,7 @@
      inkscape:label="Calque 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-57.948757,-92.719337)">
+     transform="translate(-51.833089,-60.441825)">
     <rect
        style="mix-blend-mode:normal;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.94562;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter21496)"
        id="{id}-rect8280"
@@ -134,7 +134,7 @@
        rx="11.065092"
        ry="14.147354" />
     <rect
-       style="display:inline;fill:#CCCCCC;fill-opacity:1;fill-rule:evenodd;stroke-width:0.273526"
+       style="display:inline;fill:#cccccc;fill-opacity:1;fill-rule:evenodd;stroke-width:0.273526"
        id="{id}-back"
        width="77.035522"
        height="104.16769"
