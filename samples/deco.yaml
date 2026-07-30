@@ -1,4 +1,8 @@
 name: deco
+deco: |
+  One line!
+  Two lines!
+  Three lines!
 components
   CORE
     type: arm

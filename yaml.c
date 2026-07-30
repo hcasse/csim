@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include "yaml.h"
@@ -37,6 +38,7 @@ void yaml_init_handler(yaml_handler_t *handler) {
 	handler->on_error = yaml_on_error;
 }
 
+
 /**
  * Parse the given path as a YAML format using the given handler.
  * @param handler	Handler to emit foudn values.
@@ -45,15 +47,20 @@ void yaml_init_handler(yaml_handler_t *handler) {
  * @return			0 if all is fine, -1 or line number if there is an error.
  */
 int yaml_parse(yaml_handler_t *handler, const char *path, void *data) {
+	char text[4096];
 	char buf[256];
+	char key[64];
 	typedef enum {
 		IN_MAP,
-		IN_LIST
+		IN_LIST,
+		IN_LONG
 	} state_t;
 	state_t state = IN_MAP;
 	state_t stack[32];
 	int stack_top = 0;
 	int num = 0;
+	yaml_next_t next;
+	int load = 1;
 
 	/* open the file */
 	FILE *in = fopen(path, "r");
@@ -63,16 +70,32 @@ int yaml_parse(yaml_handler_t *handler, const char *path, void *data) {
 	}
 
 	/* traverse the file */
-	while(fgets(buf, sizeof(buf), in) != NULL) {
-		num++;
+	while(1) {
+
+		/* load if required */
+		if(load) {
+			if(fgets(buf, sizeof(buf), in) == NULL)
+				break;
+			num++;
+		}
+		else
+			load = 1;
+
+		/* remove '\n' */
+		int len = strlen(buf);
+		if(buf[len - 1] == '\n') {
+			buf[len - 1] = '\0';
+			len--;
+		}
 
 		/* count spaces and ignore empty lines */
 		int cnt = 0;
 		while(buf[cnt] == ' ') cnt++;
 		if(buf[cnt] == '\n' || buf[cnt] == '\0')
 			continue;
+		char *p = buf + cnt;
 
-		/* process different levels of spaces */
+		/* check for errors in indentation */
 		if((cnt & 1) == 1) {
 			sprintf(buf, "%d: odd number of spaces.", num);
 			handler->on_error(buf, data);
@@ -83,57 +106,79 @@ int yaml_parse(yaml_handler_t *handler, const char *path, void *data) {
 			handler->on_error(buf, data);
 			return num;
 		}
-		while(cnt < stack_top*2) {
-			handler->on_end(data);
-			stack_top--;
-			state = stack[stack_top];
-		}
 
-		/* remove '\n' */
-		char *p = buf + cnt;
-		int len = strlen(p);
-		if(p[len - 1] == '\n') {
-			p[len - 1] = '\0';
-			len--;
-		}
-
-		/* process the line */
-		yaml_next_t next;
-		switch(state) {
-
-		case IN_MAP: {
-				char *q = strchr(buf, ':');
-				if(q == NULL)
-					q = p + len - 2;
-				else if(*(q + 1) == '\0') {
-					*q = '\0';
-					q -=2;
-				}
-				else if(*(q + 1) == ' ')
-					*q = '\0';
-				else {
-					sprintf(buf, "%d: space after ':' required!", num);
-					handler->on_error(buf, data);
-					return num;
-				}
-				next = handler->on_key(p, q+2, data);
+		// IN_LONG state
+		if(state == IN_LONG) {
+			if(stack_top*2 != cnt) {
+				load = 0;
+				next = handler->on_key(key, text, data);
+				state = stack[--stack_top];
 			}
-			break;
+			else {
+				strcat(text, " ");
+				strcat(text, p);
+			}
+		}
 
-		case IN_LIST: {
-				if(*p != '-' && *(p + 1) != ' ') {
-					sprintf(buf, "%d: list required here.", num);
-					handler->on_error(buf, data);
+		// other states
+		else {
+
+			// pop contexts according to space level
+			while(cnt < stack_top*2) {
+				handler->on_end(data);
+				stack_top--;
+				state = stack[stack_top];
+			}
+
+			/* process the line */
+			switch(state) {
+
+				case IN_MAP: {
+
+					// look for : + space
+					char *q = strchr(buf, ':');
+					if(q == NULL)
+						q = p + len - 2;
+					else if(*(q + 1) == '\0') {
+						*q = '\0';
+						q -=2;
+					}
+					else if(*(q + 1) == ' ')
+						*q = '\0';
+					else {
+						sprintf(buf, "%d: space after ':' required!", num);
+						handler->on_error(buf, data);
+						return num;
+					}
+
+					// process value
+					if(q[2] != '|' || q[3] != '\0')
+						next = handler->on_key(p, q+2, data);
+					else {
+						stack[stack_top++] = state;
+						state = IN_LONG;
+						strcpy(key, p);
+						text[0] = '\0';
+						continue;
+					}
+				}
+				break;
+
+				case IN_LIST: {
+					if(*p != '-' && *(p + 1) != ' ') {
+						sprintf(buf, "%d: list required here.", num);
+						handler->on_error(buf, data);
+						next = YAML_ERROR;
+					}
+					else
+						next = handler->on_item(p + 2, data);
+				}
+				break;
+
+				default:
 					next = YAML_ERROR;
-				}
-				else
-					next = handler->on_item(p + 2, data);
+					break;
 			}
-			break;
-
-		default:
-			next = YAML_ERROR;
-			break;
 		}
 
 		switch(next) {
