@@ -1,8 +1,12 @@
 name: deco
 deco: |
-  One line!
-  Two lines!
-  Three lines!
+  10 10 point 20 20 point line
+  #ff00ff fill
+  40 40 point "coucou" text
+  $LED1 right-of "LED1" text
+  "end" anchor $LED2 left-of "LED2" text
+  "top" anchor $LED3 below-of "LED3" text
+  "bottom" anchor $LED4 above-of "LED4" text
 components
   CORE
     type: arm

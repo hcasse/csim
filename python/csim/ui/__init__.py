@@ -25,6 +25,7 @@ from orchid import Buffer
 from orchid import svg
 
 import csim
+from csim.ui.stack import Error, StackMachine, Value
 import libcsim
 
 size_re = re.compile(r"viewBox=\"[0-9.]+\s+[0-9.]\s+([0-9.]+)\s+([0-9.]+)\"")
@@ -159,6 +160,156 @@ class Component(csim.IOComponent):
 				self.y = pos[1]
 
 
+class Point(Value):
+
+	def __init__(self, x, y):
+		self.x = x
+		self.y = y
+
+	def add(self, x):
+		if isinstance(x, Point):
+			return Point(self.x + x.x, self.y + x.y)
+		else:
+			return Point(self.x + x.as_int(), self.y + x.as_int())
+
+	def sub(self, x):
+		if isinstance(x, Point):
+			return Point(self.x - x.x, self.y - x.y)
+		else:
+			return Point(self.x - x.as_int(), self.y - x.as_int())
+
+	def as_str(self):
+		return f"({self.x}, {self.y})"
+
+
+class Color(Value):
+
+	def __init__(self, color):
+		self.color = color
+
+	def as_str(self):
+		return self.color
+
+	def __str__(self):
+		return self.color
+
+
+class CompValue(Value):
+
+	def __init__(self, comp):
+		self.comp = comp
+
+	def as_str(self):
+		return f"${self.comp.get_name()}"
+
+
+class DecoMachine(StackMachine):
+	"""Machine for generating decoration."""
+
+	@staticmethod
+	def point(mach):
+		y = mach.pop()
+		x = mach.pop()
+		mach.push(Point(x, y))
+
+	def draw_line(self, mach):
+		p2 = mach.pop()
+		p1 = mach.pop()
+		args = {}
+		if self.stroke:
+			args["stroke"] = self.stroke
+		self.display.line(p1.x, p1.y, p2.x, p2.y, **args)
+
+	def draw_text(self, mach):
+		t = mach.pop().as_str()
+		p = mach.pop()
+		args = {}
+		x = p.x
+		y = p.y
+		if self.fill:
+			args["fill"] = self.fill
+		if self.anchor:
+			if self.anchor.as_str() == "top":
+				anchor = "middle"
+				y += self.font_size
+			elif self.anchor.as_str() == "bottom":
+				anchor = "middle"
+			else:
+				anchor = self.anchor
+				y += self.font_size/2
+			args["text-anchor"] = anchor
+		args["font-size"] = f"{self.font_size}px";
+		self.display.text(x, y, t, **args)
+
+	def set_fill(self, mach):
+		self.fill = mach.pop()
+
+	def set_stroke(self, mach):
+		self.stroke = mach.pop()
+
+	def set_anchor(self, mach):
+		self.anchor = mach.pop()
+		if self.anchor == "none":
+			self.anchor = None
+
+	def get_comp(self, cmd, mach):
+		comp = self.display.find(cmd[1:])
+		if comp is None:
+			raise Error(f"cannot find component {cmd}")
+		else:
+			mach.push(CompValue(comp))
+
+	def right_of(self, mach):
+		val = mach.pop_check(CompValue)
+		(x, y) = val.comp.get_pos()
+		(w, h) = val.comp.get_size()
+		mach.push(Point(x + w + self.display.get_xspace(), y + h/2))
+
+	def left_of(self, mach):
+		val = mach.pop_check(CompValue)
+		(x, y) = val.comp.get_pos()
+		(w, h) = val.comp.get_size()
+		mach.push(Point(x + - self.display.get_xspace(), y + h/2))
+
+	def below_of(self, mach):
+		val = mach.pop_check(CompValue)
+		(x, y) = val.comp.get_pos()
+		(w, h) = val.comp.get_size()
+		mach.push(Point(x + w/2, y + h + self.display.get_yspace()))
+
+	def above_of(self, mach):
+		val = mach.pop_check(CompValue)
+		(x, y) = val.comp.get_pos()
+		(w, h) = val.comp.get_size()
+		mach.push(Point(x + w/2, y - self.display.get_yspace()))
+
+	def __init__(self, display):
+		StackMachine.__init__(
+			self,
+			map = {
+				"above-of":	self.above_of,
+				"anchor":	self.set_anchor,
+				"below-of":	self.below_of,
+				"fill":		self.set_fill,
+				"line":		self.draw_line,
+				"point":	DecoMachine.point,
+				"right-of":	self.right_of,
+				"left-of":	self.left_of,
+				"stroke":	self.set_stroke,
+				"text":		self.draw_text
+			},
+			lexer = {
+				'#': lambda cmd, mach: mach.push(Color(cmd)),
+				'$': self.get_comp
+			}
+		)
+		self.display = display
+		self.stroke = "black"
+		self.fill = "black"
+		self.anchor = None
+		self.font_size = 12
+
+
 class Display(svg.Canvas):
 	"""Orchid component to display simulated IO components."""
 
@@ -182,7 +333,8 @@ class Display(svg.Canvas):
 			return None
 
 	def install(self, board):
-		"""Add IO components from the board."""
+		"""Add IO components from the board.
+		May rise csim.ui.stack.Error if a decoration cannot execute."""
 
 		# set configuration
 		self.xspace = board.get_confs().get_int("xspace", self.xspace)
@@ -193,6 +345,12 @@ class Display(svg.Canvas):
 			if isinstance(io, Component):
 				io.map(self)
 				self.map[io.get_name()] = io
+
+		# draw deco if any
+		deco = board.get_confs().get("deco")
+		if deco:
+			mach = DecoMachine(self)
+			mach.run(deco)
 
 		# display them
 		for io in board.io_components:
