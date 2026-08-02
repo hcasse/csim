@@ -206,13 +206,12 @@ class CompValue(Value):
 class DecoMachine(StackMachine):
 	"""Machine for generating decoration."""
 
-	@staticmethod
-	def point(mach):
+	def _do_point(self, mach):
 		y = mach.pop()
 		x = mach.pop()
 		mach.push(Point(x, y))
 
-	def draw_line(self, mach):
+	def _do_line(self, mach):
 		p2 = mach.pop()
 		p1 = mach.pop()
 		args = {}
@@ -220,7 +219,7 @@ class DecoMachine(StackMachine):
 			args["stroke"] = self.stroke
 		self.display.line(p1.x, p1.y, p2.x, p2.y, **args)
 
-	def draw_text(self, mach):
+	def _do_text(self, mach):
 		t = mach.pop().as_str()
 		p = mach.pop()
 		args = {}
@@ -241,13 +240,13 @@ class DecoMachine(StackMachine):
 		args["font-size"] = f"{self.font_size}px";
 		self.display.text(x, y, t, **args)
 
-	def set_fill(self, mach):
+	def _do_fill(self, mach):
 		self.fill = mach.pop()
 
-	def set_stroke(self, mach):
+	def _do_stroke(self, mach):
 		self.stroke = mach.pop()
 
-	def set_anchor(self, mach):
+	def _do_anchor(self, mach):
 		self.anchor = mach.pop()
 		if self.anchor == "none":
 			self.anchor = None
@@ -259,45 +258,39 @@ class DecoMachine(StackMachine):
 		else:
 			mach.push(CompValue(comp))
 
-	def right_of(self, mach):
+	def _do_right_of(self, mach):
 		val = mach.pop_check(CompValue)
 		(x, y) = val.comp.get_pos()
 		(w, h) = val.comp.get_size()
 		mach.push(Point(x + w + self.display.get_xspace(), y + h/2))
 
-	def left_of(self, mach):
+	def _do_left_of(self, mach):
 		val = mach.pop_check(CompValue)
 		(x, y) = val.comp.get_pos()
 		(w, h) = val.comp.get_size()
 		mach.push(Point(x + - self.display.get_xspace(), y + h/2))
 
-	def below_of(self, mach):
+	def _do_below_of(self, mach):
 		val = mach.pop_check(CompValue)
 		(x, y) = val.comp.get_pos()
 		(w, h) = val.comp.get_size()
 		mach.push(Point(x + w/2, y + h + self.display.get_yspace()))
 
-	def above_of(self, mach):
+	def _do_above_of(self, mach):
 		val = mach.pop_check(CompValue)
 		(x, y) = val.comp.get_pos()
 		(w, h) = val.comp.get_size()
 		mach.push(Point(x + w/2, y - self.display.get_yspace()))
 
+	def _do_font_size(self, mach):
+		self.font_size = mach.pop().as_int()
+
 	def __init__(self, display):
+
+		# call super
 		StackMachine.__init__(
 			self,
-			map = {
-				"above-of":	self.above_of,
-				"anchor":	self.set_anchor,
-				"below-of":	self.below_of,
-				"fill":		self.set_fill,
-				"line":		self.draw_line,
-				"point":	DecoMachine.point,
-				"right-of":	self.right_of,
-				"left-of":	self.left_of,
-				"stroke":	self.set_stroke,
-				"text":		self.draw_text
-			},
+			{ },
 			lexer = {
 				'#': lambda cmd, mach: mach.push(Color(cmd)),
 				'$': self.get_comp

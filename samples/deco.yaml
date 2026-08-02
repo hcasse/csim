@@ -7,6 +7,10 @@ deco: |
   "end" anchor $LED2 left-of "LED2" text
   "top" anchor $LED3 below-of "LED3" text
   "bottom" anchor $LED4 above-of "LED4" text
+  "Should print 666" print
+  666 print
+  "Should print 112" print
+  111 >x x 1 + print
 components
   CORE
     type: arm

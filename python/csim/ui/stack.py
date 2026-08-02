@@ -83,7 +83,11 @@ class Str(Value):
 
 
 class StackMachine:
-	"""Stack machine to interpret decoration."""
+	"""Stack machine to interpret decoration.
+
+	All methods starting by "_do_" are considered as commands which name is the
+	rest of the name with "_" translated to "-". They are considered as
+	functions taking the machine as unique parameter."""
 
 	def start_str(self, cmd, mach):
 		if cmd.endswith('"'):
@@ -92,15 +96,15 @@ class StackMachine:
 			self.in_str = True
 		mach.push(Str(cmd[1:]))
 
-	def process_str(self, cmd, mach):
+	def process_str(self, cmd):
 		if cmd.endswith('"'):
 			self.in_str = False
 			cmd = cmd[0:-1]
-		mach.push(Str(mach.pop().as_str() + " " + cmd))
+		self.push(Str(self.pop().as_str() + " " + cmd))
 
 	def parse_int(self, cmd, mach):
 		try:
-			mach.push(int(cmd))
+			mach.push(Int(int(cmd)))
 		except ValueError:
 			mach.push(Int(0))
 
@@ -117,25 +121,33 @@ class StackMachine:
 		mach.push(x.sub(y))
 
 	@staticmethod
-	def set(mach):
+	def set(cmd, mach):
 		val = mach.pop()
-		key = mach.pop().as_str()
-		mach.define(key, lambda mach: val)
+		mach.define(cmd[1:], lambda mach: mach.push(val))
+
+	@staticmethod
+	def _do_print(mach):
+		print(f"OUT: {mach.pop().as_str()}")
 
 	def __init__(self, map = None, lexer = None):
 
 		# define function map
 		self.map = {
 			"+": 	StackMachine.add,
-			"-": 	StackMachine.sub,
-			"set":	StackMachine.set
+			"-": 	StackMachine.sub
 		}
 		if map is not None:
 			self.map = self.map | map
 
+		# detect method for operations
+		for name in dir(self.__class__):
+			if name.startswith("_do_"):
+				self.map[name[4:].replace('_', '-')] = getattr(self, name)
+
 		# define lexer map
 		self.lexer = {
-			'"': self.start_str
+			'"': self.start_str,
+			'>': StackMachine.set
 		}
 		for c in "0123456789":
 			self.lexer[c] = self.parse_int
@@ -175,13 +187,14 @@ class StackMachine:
 
 			# other
 			#print(f"command {cmd}")
-			try:
-				self.lexer[cmd[0]](cmd, self)
-			except KeyError:
+			else:
 				try:
-					self.map[cmd](self)
+					self.lexer[cmd[0]](cmd, self)
 				except KeyError:
-					raise Error(f"unknown command {cmd}")
+					try:
+						self.map[cmd](self)
+					except KeyError:
+						raise Error(f"unknown command {cmd}")
 
 	def make_int(self, n):
 		return Int(n)
