@@ -42,6 +42,12 @@ class Value:
 	def sub(self, x):
 		return Value()
 
+	def mul(self, x):
+		return Value
+
+	def div(self, x):
+		return Value()
+
 
 class Int(Value):
 
@@ -60,6 +66,16 @@ class Int(Value):
 	def sub(self, x):
 		return Int(self.n - x.as_int())
 
+	def mul(self, x):
+		return Int(self.n * x.as_int())
+
+	def div(self, x):
+		val = x.as_int()
+		if val == 0:
+			return Value()
+		else:
+			return self.n / val
+
 
 class Str(Value):
 
@@ -77,6 +93,9 @@ class Str(Value):
 
 	def add(self, x):
 		return Str(self.s + x.as_str())
+
+	def mul(self, x):
+		return Str(self.s * x.as_int())
 
 	def __str__(self):
 		return self.s
@@ -119,6 +138,18 @@ class StackMachine:
 		y = mach.pop()
 		x = mach.pop()
 		mach.push(x.sub(y))
+
+	@staticmethod
+	def mul(mach):
+		y = mach.pop()
+		x = mach.pop()
+		mach.push(x.mul(y))
+
+	@staticmethod
+	def div(mach):
+		y = mach.pop()
+		x = mach.pop()
+		mach.push(x.div(y))
 
 	@staticmethod
 	def set(cmd, mach):

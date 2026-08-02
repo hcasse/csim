@@ -11,6 +11,10 @@ deco: |
   666 print
   "Should print 112" print
   111 >x x 1 + print
+  "left" anchor
+  ##blue fill 10 100 point "blue?" text
+  200 10 point 50 0 size line
+  ##green fill 10 150 point 20 30 size rect
 components
   CORE
     type: arm

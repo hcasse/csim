@@ -182,10 +182,33 @@ class Point(Value):
 		return f"({self.x}, {self.y})"
 
 
+class Size(Point):
+
+	def __init__(self, x, y):
+		Point.__init__(self, x, y)
+
+	def mul(self, x):
+		n = x.as_int()
+		return Size(self.x * n, self.y * n)
+
+	def div(self, x):
+		n = x.as_int()
+		if n == 0:
+			return Value()
+		else:
+			return Size(self.x / n, self.y / n)
+
+	def as_str(self):
+		return f"{self.x}x{self.y}"
+
+
 class Color(Value):
 
 	def __init__(self, color):
-		self.color = color
+		if color.startswith("##"):
+			self.color = color[2:]
+		else:
+			self.color = color
 
 	def as_str(self):
 		return self.color
@@ -207,21 +230,40 @@ class DecoMachine(StackMachine):
 	"""Machine for generating decoration."""
 
 	def _do_point(self, mach):
-		y = mach.pop()
-		x = mach.pop()
+		y = mach.pop().as_int()
+		x = mach.pop().as_int()
 		mach.push(Point(x, y))
+
+	def _do_size(self, mach):
+		y = mach.pop().as_int()
+		x = mach.pop().as_int()
+		mach.push(Size(x, y))
 
 	def _do_line(self, mach):
 		p2 = mach.pop()
-		p1 = mach.pop()
+		p1 = mach.pop_check(Point)
+		if isinstance(p2, Size):
+			p2 = p1.add(p2)
 		args = {}
 		if self.stroke:
 			args["stroke"] = self.stroke
 		self.display.line(p1.x, p1.y, p2.x, p2.y, **args)
 
+	def _do_rect(self, mach):
+		s = mach.pop()
+		p = mach.pop_check(Point)
+		if not isinstance(s, Size):
+			s = Size(s.x - p.x, s.y - p.y)
+		args = {}
+		if self.stroke:
+			args["stroke"] = self.stroke
+		if self.fill:
+			args["fill"] = self.fill
+		self.display.rect(p.x, p.y, s.x, s.y, **args)
+
 	def _do_text(self, mach):
 		t = mach.pop().as_str()
-		p = mach.pop()
+		p = mach.pop_check(Point)
 		args = {}
 		x = p.x
 		y = p.y
@@ -242,9 +284,13 @@ class DecoMachine(StackMachine):
 
 	def _do_fill(self, mach):
 		self.fill = mach.pop()
+		if self.fill.as_str() == "none":
+			self.fill = None
 
 	def _do_stroke(self, mach):
 		self.stroke = mach.pop()
+		if self.stroke.as_str() == "none":
+			self.stroke = None
 
 	def _do_anchor(self, mach):
 		self.anchor = mach.pop()
