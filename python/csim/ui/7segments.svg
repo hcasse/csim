@@ -1,202 +1,156 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
+
 <svg
-    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-    xmlns="http://www.w3.org/2000/svg"
-    xmlns:cc="http://creativecommons.org/ns#"
-    xmlns:dc="http://purl.org/dc/elements/1.1/"
-    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-    xmlns:svg="http://www.w3.org/2000/svg"
-    xmlns:ns1="http://sozi.baierouge.fr"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
-    id="svg2"
-    sodipodi:docname="Seven_segment_display_gray_9.svg"
-    viewBox="0 0 75.991 114.71"
-    sodipodi:version="0.32"
-    version="1.0"
-    inkscape:output_extension="org.inkscape.output.svg.inkscape"
-    inkscape:version="0.48.3.1 r9886"
-  >
+   id="svg2"
+   sodipodi:docname="7segments.svg"
+   viewBox="0 0 64.019808 101.26994"
+   sodipodi:version="0.32"
+   version="1.0"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   width="64.019806"
+   height="101.26994"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <defs
+     id="defs15" />
   <sodipodi:namedview
-      id="base"
-      fit-margin-left="0"
-      inkscape:showpageshadow="false"
-      inkscape:zoom="4.5246059"
-      borderopacity="1.0"
-      inkscape:current-layer="layer1"
-      inkscape:cx="73.578899"
-      inkscape:cy="48.070486"
-      inkscape:window-maximized="1"
-      showgrid="false"
-      fit-margin-right="0"
-      inkscape:document-units="px"
-      bordercolor="#666666"
-      inkscape:window-x="0"
-      guidetolerance="10"
-      objecttolerance="10"
-      inkscape:window-y="36"
-      fit-margin-bottom="0"
-      inkscape:window-width="1680"
-      inkscape:pageopacity="0.0"
-      inkscape:pageshadow="2"
-      pagecolor="#ffffff"
-      gridtolerance="10000"
-      inkscape:window-height="990"
-      showborder="false"
-      fit-margin-top="0"
-  />
+     id="base"
+     fit-margin-left="0"
+     inkscape:showpageshadow="false"
+     inkscape:zoom="4.5246059"
+     borderopacity="1.0"
+     inkscape:current-layer="layer1"
+     inkscape:cx="68.293241"
+     inkscape:cy="41.55058"
+     inkscape:window-maximized="1"
+     showgrid="false"
+     fit-margin-right="0"
+     inkscape:document-units="px"
+     bordercolor="#666666"
+     inkscape:window-x="0"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:window-y="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1920"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     pagecolor="#ffffff"
+     gridtolerance="10000"
+     inkscape:window-height="1008"
+     showborder="false"
+     fit-margin-top="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1" />
   <g
-      id="layer1"
-      inkscape:label="Layer 1"
-      inkscape:groupmode="layer"
-      transform="translate(-46.883 -35.635)"
-    >
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     transform="translate(-52.165005,-42.364681)">
     <rect
-        id="{id}rect2418"
-        style="fill-rule:evenodd;fill:#b3b3b3"
-        inkscape:export-ydpi="90"
-        inkscape:export-filename="F:\Aviation\SVGs\EGT\LCDs.png"
-        ry="0"
-        height="114.71"
-        width="75.991"
-        inkscape:export-xdpi="90"
-        y="35.635"
-        x="46.883"
-    />
+       id="{id}rect2418"
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke-width:0.862414"
+       inkscape:export-ydpi="90"
+       inkscape:export-filename="F:\Aviation\SVGs\EGT\LCDs.png"
+       ry="0"
+       height="101.26994"
+       width="64.019806"
+       inkscape:export-xdpi="90"
+       y="42.364681"
+       x="52.165005"
+       inkscape:label="back" />
     <path
-        id="{id}path2401"
-        style="fill:#000000"
-        inkscape:connector-curvature="0"
-        d="m60.597 136.72c0.643-0.69964 2.7094-2.8882 4.592-4.8636l3.423-3.5915h16.259 16.259l3.423 3.5915c1.8826 1.9753 3.949 4.1639 4.592 4.8636l1.1691 1.2721h-25.443-25.443l1.1691-1.2721z"
-    />
+       id="{id}down"
+       style="fill:#555555;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       d="m 60.597,136.72 c 0.643,-0.69964 2.7094,-2.8882 4.592,-4.8636 l 3.423,-3.5915 h 16.259 16.259 l 3.423,3.5915 c 1.8826,1.9753 3.949,4.1639 4.592,4.8636 l 1.1691,1.2721 h -25.443 -25.443 l 1.1691,-1.2721 z"
+       inkscape:label="down" />
     <path
-        id="{id}path2399"
-        style="fill:#000000"
-        inkscape:connector-curvature="0"
-        d="m58.258 117.79v-19.484l2.3473-2.2274 2.3473-2.2274 0.7761 0.70341c0.42686 0.38688 1.6425 1.5371 2.7015 2.5561l1.9254 1.8527-0.0043 13.905-0.0043 13.905-3.2745 3.423c-1.801 1.8826-4.0711 4.2455-5.0446 5.2508l-1.7701 1.8278v-19.484z"
-    />
+       id="{id}downleft"
+       style="fill:#555555;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       d="M 58.258,117.79 V 98.306 l 2.3473,-2.2274 2.3473,-2.2274 0.7761,0.70341 c 0.42686,0.38688 1.6425,1.5371 2.7015,2.5561 l 1.9254,1.8527 -0.0043,13.905 -0.0043,13.905 -3.2745,3.423 c -1.801,1.8826 -4.0711,4.2455 -5.0446,5.2508 l -1.7701,1.8278 v -19.484 z"
+       inkscape:label="downleft" />
     <path
-        id="{id}path2397"
-        style="fill:#000000"
-        inkscape:connector-curvature="0"
-        d="m106.4 132-5.0016-5.2212-0.005-13.905-0.005-13.905 1.9254-1.8527c1.059-1.019 2.2753-2.1698 2.7028-2.5573l0.77744-0.70464 2.3544 2.2568 2.3544 2.2568-0.0511 19.426-0.0511 19.426-5.0015-5.2212z"
-    />
+       id="{id}downright"
+       style="fill:#555555;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       d="m 106.4,132 -5.0016,-5.2212 -0.005,-13.905 -0.005,-13.905 1.9254,-1.8527 c 1.059,-1.019 2.2753,-2.1698 2.7028,-2.5573 l 0.77744,-0.70464 2.3544,2.2568 2.3544,2.2568 -0.0511,19.426 -0.0511,19.426 -5.0015,-5.2212 z"
+       inkscape:label="downright" />
     <path
-        id="{id}path2395"
-        style="fill:#000000"
-        inkscape:connector-curvature="0"
-        d="m66.596 95.5-2.701-2.6093 2.6708-2.5244 2.6708-2.5244h15.635 15.635l2.6708 2.5244 2.6708 2.5244-2.701 2.6093-2.701 2.6093h-15.574-15.574l-2.701-2.6093z"
-    />
+       id="{id}mid"
+       style="fill:#555555;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       d="m 66.596,95.5 -2.701,-2.6093 2.6708,-2.5244 2.6708,-2.5244 h 15.635 15.635 l 2.6708,2.5244 2.6708,2.5244 -2.701,2.6093 -2.701,2.6093 H 84.8722 69.2982 L 66.5972,95.5 Z"
+       inkscape:label="mid" />
     <path
-        id="{id}path2393"
-        style="fill:#000000"
-        inkscape:connector-curvature="0"
-        d="m60.61 89.825-2.354-2.2487 0.04353-19.268 0.04353-19.268 5.0061 4.7831 5.0061 4.7831v14.17 14.17l-2.6956 2.5637-2.6956 2.5637-2.354-2.2487z"
-    />
+       id="{id}upleft"
+       style="fill:#555555;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       d="m 60.61,89.825 -2.354,-2.2487 0.04353,-19.268 0.04353,-19.268 5.0061,4.7831 5.0061,4.7831 v 14.17 14.17 l -2.6956,2.5637 -2.6956,2.5637 -2.354,-2.2487 z"
+       inkscape:label="upleft" />
     <path
-        id="{id}path2391"
-        style="fill:#000000"
-        inkscape:connector-curvature="0"
-        d="m104.07 89.487-2.6963-2.5871 0.006-14.14 0.006-14.14 3.4657-3.306c1.9062-1.8183 4.1781-4.0026 5.0489-4.854l1.5831-1.548-0.00007 19.336-0.00006 19.336-2.3587 2.2448-2.3587 2.2448-2.6963-2.5871z"
-    />
+       id="{id}upright"
+       style="fill:#555555;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       d="m 104.07,89.487 -2.6963,-2.5871 0.006,-14.14 0.006,-14.14 3.4657,-3.306 c 1.9062,-1.8183 4.1781,-4.0026 5.0489,-4.854 l 1.5831,-1.548 -7e-5,19.336 -6e-5,19.336 -2.3587,2.2448 -2.3587,2.2448 -2.6963,-2.5871 z"
+       inkscape:label="upright" />
     <path
-        id="{id}path2470"
-        style="fill:#000000"
-        inkscape:connector-curvature="0"
-        d="m64.19 52.885-5.0842-4.8349 12.826-0.04387c7.0546-0.02413 18.649-0.02413 25.765 0l12.939 0.04387-5.0842 4.8349-5.0842 4.8349h-15.597-15.597l-5.0842-4.8349z"
-    />
-  </g
-  >
+       id="{id}up"
+       style="fill:#555555;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       d="m 64.19,52.885 -5.0842,-4.8349 12.826,-0.04387 c 7.0546,-0.02413 18.649,-0.02413 25.765,0 l 12.939,0.04387 -5.0842,4.8349 -5.0842,4.8349 H 84.8704 69.2734 L 64.1892,52.885 Z"
+       inkscape:label="up" />
+  </g>
   <metadata
-    >
-    <rdf:RDF
-      >
-      <cc:Work
-        >
-        <dc:format
-          >image/svg+xml</dc:format
-        >
+     id="metadata12">
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
         <dc:type
-            rdf:resource="http://purl.org/dc/dcmitype/StillImage"
-        />
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
         <cc:license
-            rdf:resource="http://creativecommons.org/licenses/publicdomain/"
-        />
-        <dc:publisher
-          >
+           rdf:resource="http://creativecommons.org/publicdomain/zero/1.0/" />
+        <dc:publisher>
           <cc:Agent
-              rdf:about="http://openclipart.org/"
-            >
-            <dc:title
-              >Openclipart</dc:title
-            >
-          </cc:Agent
-          >
-        </dc:publisher
-        >
-        <dc:title
-          >Seven segment display gray 8</dc:title
-        >
-        <dc:date
-          >2012-03-15T11:54:54</dc:date
-        >
-        <dc:description
-          >A simple seven segment display</dc:description
-        >
-        <dc:source
-          >https://openclipart.org/detail/168839/seven-segment-display-gray-8-by-alex8664</dc:source
-        >
-        <dc:creator
-          >
-          <cc:Agent
-            >
-            <dc:title
-              >alex8664</dc:title
-            >
-          </cc:Agent
-          >
-        </dc:creator
-        >
-        <dc:subject
-          >
-          <rdf:Bag
-            >
-            <rdf:li
-              >display</rdf:li
-            >
-            <rdf:li
-              >lcd</rdf:li
-            >
-            <rdf:li
-              >number</rdf:li
-            >
-            <rdf:li
-              >seven segment</rdf:li
-            >
-          </rdf:Bag
-          >
-        </dc:subject
-        >
-      </cc:Work
-      >
+             rdf:about="http://openclipart.org/">
+            <dc:title>Openclipart</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title>Seven segment display gray 8</dc:title>
+        <dc:date>2012-03-15T11:54:54</dc:date>
+        <dc:description>A simple seven segment display</dc:description>
+        <dc:source>https://openclipart.org/detail/168839/seven-segment-display-gray-8-by-alex8664</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>alex8664</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>display</rdf:li>
+            <rdf:li>lcd</rdf:li>
+            <rdf:li>number</rdf:li>
+            <rdf:li>seven segment</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
       <cc:License
-          rdf:about="http://creativecommons.org/licenses/publicdomain/"
-        >
+         rdf:about="http://creativecommons.org/publicdomain/zero/1.0/">
         <cc:permits
-            rdf:resource="http://creativecommons.org/ns#Reproduction"
-        />
+           rdf:resource="http://creativecommons.org/ns#Reproduction" />
         <cc:permits
-            rdf:resource="http://creativecommons.org/ns#Distribution"
-        />
+           rdf:resource="http://creativecommons.org/ns#Distribution" />
         <cc:permits
-            rdf:resource="http://creativecommons.org/ns#DerivativeWorks"
-        />
-      </cc:License
-      >
-    </rdf:RDF
-    >
-  </metadata
-  >
-</svg
->
+           rdf:resource="http://creativecommons.org/ns#DerivativeWorks" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>

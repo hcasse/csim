@@ -93,3 +93,69 @@ Component position can be fixed using attributes:
 	Positions _POS_ encompasses `right`, `left`, `below`, `above`.
 
 
+Additional decoration can be produced by providing the attribute `deco`. This attribute contains a long text that is in fact a stack-machine program. Each instruction is separated by one or several and spaces.
+
+The syntax of instructions function is the following:
+
+	_INSTRUCTION_ : _S1_ -> _S2_
+
+_S1_ is the stack before and _S2_ the stack after.
+
+
+These basic instructions of the stack machine are the following:
+
+_DEC_: S -> S::DEC
+: push a decimal integer,
+
+"_STRING_": S -> S::STRING
+: pushes the provided stirng.
+
+_ID_: S::S' -> S::S"
+: calls the named function on the current stack consuming S' element and producing S",
+
+`<`_ID_: S -> S::VAL
+: assign the top of the stack to the named variable (which is a function that evaluates to the value _VAL_ of a variable),
+
+`+`, `-`, `*`, `/`: S::x::y -> S::(x op y)
+; perform operation _op_ of the two top element of the stack,
+
+This machine is specialized in CSIM with the instructions:
+
+`#`_HHHHHH_: S -> S::#HHHHHH
+: pushes the provided HTML color.
+
+`##`_ID_: S -> S::ID
+: pushes the named HTML color.
+
+`$`_ID_: S -> S::component
+: push the component corresponding to the name.
+
+`point`: S::x::y -> S::point(x, y)
+: build a point object.
+
+`size`: S::w::h -> S::width(w, h)
+: build a size object.
+
+`text`: S::STRING::point -> S
+: draw string at the position _point_.
+
+`line`: S::point1::(point2, size) -> S
+: draw a line from _point1_ to _point2_ or along _size_.
+
+`rect`: S::point1::(point2, size) -> S
+: draw a rectangle from _point1_ to _point2_ or along _size_.
+
+`stroke`: S::(color|`none`) -> S
+: set the stroke color.
+
+`fill`: S::(color|`none`) -> S
+: set the file color.
+
+`anchor`: S::("start"|"middle"|"end"|"nonee") -> S
+: set the anchor of a text.
+
+`left-of`, `right-of`, `above-of`, `below-of`: S::component -> S::point
+: build a point as a position relative to a component.
+
+`font-size`: S::INT -> S
+: set the size in pixel of the font.
