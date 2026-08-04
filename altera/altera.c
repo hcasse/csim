@@ -1,4 +1,4 @@
-#include "../csim.h"
+#include <csim.h>
 
 extern csim_component_t altera_ParPort_component;
 

@@ -1,0 +1,19 @@
+name: sseg-test
+components
+  CORE
+    type: arm
+  GPIOA:
+    type: altera/ParPort
+    base: FF000000
+    DIR: 0b01111111
+  SSEG:
+    type: sseg
+connect
+  - GPIOA.P0 -- SSEG.UP
+  - GPIOA.P1 -- SSEG.UPLEFT
+  - GPIOA.P2 -- SSEG.UPRIGHT
+  - GPIOA.P3 -- SSEG.MID
+  - GPIOA.P4 -- SSEG.DOWNLEFT
+  - GPIOA.P5 -- SSEG.DOWNRIGHT
+  - GPIOA.P6 -- SSEG.DOWN
+

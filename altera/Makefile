@@ -2,8 +2,8 @@ GLISS = ../gliss/gep/gliss-csim
 GLISS_FLAGS = \
 	-h ../templates/comp.h \
 	-c ../templates/comp.c
-CFLAGS = -I.. -g3 -fPIC
-LDFLAGS = -L.. -lcsim
+CFLAGS = -I../lib -g3 -fPIC
+LDFLAGS = -L../lib -lcsim
 
 NMPS = $(wildcard *.nmp)
 HEADERS = $(NMPS:.nmp=.h)

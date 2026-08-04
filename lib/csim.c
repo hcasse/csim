@@ -48,6 +48,12 @@ static csim_component_t *csim_comps = NULL;
 
 
 /**
+ * Defines loaded libraries (array ended by 0).
+ * @ingroup csim
+ */
+static void *csim_libs[32] = { 0 };
+
+/**
  * List of directories to find plug-in.
  * @ingroup csim
  */
@@ -1122,6 +1128,11 @@ csim_component_t *csim_find_component(const char *name) {
 		return NULL;
 	}
 
+	// already opened?
+	for(int i = 0; csim_libs[i]; i++)
+		if(csim_libs[i] == handle)
+			return NULL;
+
 	// get the function
 	char fun_name[256];
 	snprintf(fun_name, 256, "%s_get_components", lib);
@@ -1139,6 +1150,12 @@ csim_component_t *csim_find_component(const char *name) {
 		csim_register_component(*comps);
 		comps++;
 	}
+
+	// record the library
+	int i;
+	for(i = 0; csim_libs[i]; i++);
+	csim_libs[i] = handle;
+	csim_libs[i+1] = NULL;
 
 	// look back for the component
 	return csim_lookup_component(name);

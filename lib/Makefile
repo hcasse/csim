@@ -17,8 +17,6 @@ CFLAGS=-g3 -Wall -fPIC -I. -DCOMPAT
 LDFLAGS=-L. -lcsim
 
 PLUGINS =
-export CSIMPATH=:.$(patsubst %,:../%,$(PLUGINS))
-export PYTHONPATH=$(PWD)/../python:../../Orchid
 
 # ARMV5T option
 ifdef ARMV5T_PATH
@@ -69,10 +67,17 @@ sseg.o: sseg.h csim.h
 
 
 # testing
+export CSIMPATH=$(PWD)
+ifdef WITH_ALTERA
+CSIMPATH += :$(PWD)/../altera
+endif
+export LD_LIBRARY_PATH=$(PWD)
+
 run:
 	@echo "CSIMPATH=$$CSIMPATH"
-	@echo "PYTHONPATH=$$PYTHONPATH"
-	./python/run.py ../samples/$(TEST).yaml ../samples/$(TEST).elf
+	@echo "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH"
+	./csim-run ../samples/$(TEST).yaml ../samples/$(TEST).elf
 
-
+debug:
+	gdb --args ./csim-run ../samples/$(TEST).yaml ../samples/$(TEST).elf
 

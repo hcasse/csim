@@ -8,10 +8,10 @@ LIBEXT=$(shell $(PYTHON_CONFIG) --extension-suffix)
 CFLAGS = \
 	-fPIC \
 	$(shell $(PYTHON_CONFIG) --cflags) \
-	-I ..
+	-I ../lib
 LDFLAGS = \
 	$(shell $(PYTHON_CONFIG) --ldflags) \
-	-L.. -lcsim
+	-L../lib -lcsim
 ifdef ARMV5T_PATH
 LDFLAGS += -L../$(ARMV5T_PATH)/src -larm
 endif
@@ -24,7 +24,6 @@ all: $(MODULE)$(LIBEXT)
 
 $(MODULE)$(LIBEXT): python.c ../lib/csim.c
 	gcc $(CFLAGS) -shared -o $@ $< $(LDFLAGS)
-	#-Wl,--whole-archive ../libcsim.a
 
 $(MODULE)$(LIBEXT): ../*.c
 
