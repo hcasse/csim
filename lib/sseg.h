@@ -18,15 +18,26 @@
  * along with GLISS2; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#ifndef CSIM_LED_H
-#define CSIM_LED_H
+#ifndef CSIM_7SEG_H
+#define CSIM_7SEG_H
 
 #include "csim.h"
 
-extern csim_iocomp_t led_component;
+extern csim_iocomp_t sseg_component;
 
-int led_state(csim_inst_t *inst);
+#define SSEG_SEGS	1
 
-#define LED_SHINE	1
+#define SSEG_0	0b1110111
+#define SSEG_1	0b0100100
+#define SSEG_2	0b1011101
+#define SSEG_3	0b1101101
+#define SSEG_4	0b0101110
+#define SSEG_5	0b1101011
+#define SSEG_6	0b1111011
+#define SSEG_7	0b0100101
+#define SSEG_8	0b1111111
+#define SSEG_9	0b1101111
 
-#endif	// CSIM_LED_H
+
+#endif	// CSIM_7SEG_H
+

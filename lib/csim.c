@@ -35,6 +35,7 @@
 #include "arm_core.h"
 #include "button.h"
 #include "led.h"
+#include "sseg.h"
 
 #define CSIM_DEFAULT_CLOCK	1000
 
@@ -200,6 +201,7 @@ static void csim_init() {
 		csim_register_component(&led_component.comp);
 		csim_register_component(&button_component.comp);
 		csim_register_component(&arm_component.comp);
+		csim_register_component(&sseg_component.comp);
 
 		// initialize default path
 		char *path = getenv("CSIMPATH");

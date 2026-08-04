@@ -10,7 +10,8 @@ SOURCES=\
 	arm_core.c \
 	led.c \
 	button.c \
-	loader.c
+	loader.c \
+	sseg.c
 
 CFLAGS=-g3 -Wall -fPIC -I. -DCOMPAT
 LDFLAGS=-L. -lcsim
@@ -64,6 +65,7 @@ led.o: csim.h
 button.o: csim.h
 csim-run.o: csim.h
 server.o: csim.h
+sseg.o: sseg.h csim.h
 
 
 # testing
