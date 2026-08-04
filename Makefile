@@ -1,125 +1,47 @@
 -include config.mk
 
 # Configuration
-YAML=$(PWD)/easy-yaml
-
-HEADERS=\
-	csim.h
-SOURCES=\
-	csim.c \
-	yaml.c \
-	csim-rt.o \
-	arm_core.c \
-	led.c \
-	button.c \
-	loader.c
-
-CFLAGS=-g3 -Wall -fPIC -I. -DCOMPAT
-LDFLAGS=-L. -lcsim
-
 PLUGINS =
-export CSIMPATH=:.$(patsubst %,:%,$(PLUGINS))
-export PYTHONPATH=$(PWD)/python:../Orchid
-
-
-# additional goals
-ALL =
-CLEAN =
-DISTCLEAN =
+SUBDIRS = lib gliss
 
 # Altera option
 ifdef WITH_ALTERA
 PLUGINS += altera
 endif
 
+SUBDIRS += $(PLUGINS)
+
 # STM32 option
-ifdef WITH_STM32
-ALL += stm32-all
-CLEAN += stm32-clean
-DISTCLEAN += stm32-distclean
-endif
+#ifdef WITH_STM32
+#ALL += stm32-all
+#CLEAN += stm32-clean
+#DISTCLEAN += stm32-distclean
+#endif
 
 # AVR option
-ifdef WITH_ATMEGA328P
-ALL += atmega328p-all
-CLEAN += atmega328p-clean
-DISTCLEAN += atmega328p-distclean
-endif
-
-# ARMV5T option
-ifdef ARMV5T_PATH
-CFLAGS += -I$(ARMV5T_PATH)/include
-LDFLAGS += -L$(ARMV5T_PATH)/src -larm
-endif
+#ifdef WITH_ATMEGA328P
+#ALL += atmega328p-all
+#CLEAN += atmega328p-clean
+#DISTCLEAN += atmega328p-distclean
+#endif
 
 # Python option
 ifdef WITH_PYTHON
-ALL += python-all
-CLEAN += python-clean
+SUBDIRS += python
 endif
 
-# useful definitions
-OBJECTS=$(SOURCES:.c=.o)
-
-
 # rules
-all: gliss-all libcsim.so test-csim csim-run csim-server $(ALL) plugins-all
+all:
+	echo $(SUBDIRS)
+	for d in $(SUBDIRS); do cd $$d; make; cd ..; done
 
-clean: gliss-clean $(CLEAN) plugins-clean
-	-rm -rf $(OBJECTS) test-csim.o test-csim
+clean:
+	for d in $(SUBDIRS); do cd $$d; make clean; cd ..; done
 
-distclean: clean $(DISTCLEAN)
-	-rm -rf test-csim test2 libcsim.so
+distclean:
+	for d in $(SUBDIRS); do cd $$d; make distclean; cd ..; done
 
-test-csim: test-csim.o libcsim.so
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-csim-run: csim-run.o libcsim.so
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-csim-server: server.o libcsim.so
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-libcsim.so: $(OBJECTS)
-	gcc -shared -o $@ $(OBJECTS)
-
-# source dependencies
-csim.o: csim.h
-test-csim.o: csim.h
-yaml.o: yaml.h
-test2.o: csim.h yaml.h led.h button.h
-csim-rt.o: csim-rt.h
-loader.o: csim.h yaml.h
-arm_core.o: csim.h
-led.o: csim.h
-button.o: csim.h
-csim-run.o: csim.h
-server.o: csim.h
-
-FILES = \
-	csim/README.md \
-	csim/Makefile \
-	csim/samples/Makefile \
-	csim/samples/sample1.s \
-	csim/samples/sample1.elf
-
-dist: distclean
-	cd ..; tar cvfz csim.tgz $(FILES) csim/*.c csim/*.h
-
-gliss-all:
-	cd gliss; make all
-
-gliss-clean:
-	cd gliss; make clean
-
-
-# plugins
-plugins-all:
-	for p in $(PLUGINS); do cd $$p; make; done
-
-plugins-clean:
-	for p in $(PLUGINS); do cd $$p; make clean; done
-
+# testing
 run:
 	@echo "CSIMPATH=$$CSIMPATH"
 	@echo "PYTHONPATH=$$PYTHONPATH"
@@ -127,29 +49,23 @@ run:
 
 
 # STM32 rules
-stm32-all:
-	cd stm32; make all
+#stm32-all:
+#	cd stm32; make all
 
-stm32-clean:
-	cd stm32; make clean
+#stm32-clean:
+#	cd stm32; make clean
 
 
 # Altera
 
 
 # ATMEGA328P rules
-atmega328p-all:
-	cd atmega328p; make all
+#atmega328p-all:
+#	cd atmega328p; make all
 
-atmega328p-clean:
-	cd atmega328p; make clean
+#atmega328p-clean:
+#	cd atmega328p; make clean
 
-# python rules
-python-all:
-	cd python; make
-
-python-clean:
-	cd python; make clean
 
 # setup
 GLISS_GIT = https://git.renater.fr/anonscm/git/gliss2/gliss2.git

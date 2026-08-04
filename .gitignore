@@ -36,8 +36,8 @@ python/build
 config.mk
 armv5t
 gliss2
-/csim-run
-/Orchid
+csim-run
+Orchid
 __pycache__
 csim-server
 libcsim.so

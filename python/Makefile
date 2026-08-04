@@ -22,7 +22,7 @@ NUM = 1
 
 all: $(MODULE)$(LIBEXT)
 
-$(MODULE)$(LIBEXT): python.c ../csim.c
+$(MODULE)$(LIBEXT): python.c ../lib/csim.c
 	gcc $(CFLAGS) -shared -o $@ $< $(LDFLAGS)
 	#-Wl,--whole-archive ../libcsim.a
 
@@ -33,7 +33,7 @@ clean:
 
 export PYTHONPATH=$(PWD):$(PWD)/../../Orchid
 export CSIMPATH=$(PWD)/../altera
-export LD_LIBRARY_PATH=$(PWD):$(PWD)/..
+export LD_LIBRARY_PATH=$(PWD):$(PWD)/../lib
 
 run:
 	@echo "PYTHONPATH=$$PYTHONPATH"

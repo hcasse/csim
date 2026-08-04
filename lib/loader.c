@@ -28,8 +28,6 @@
 
 #include "yaml.h"
 
-#include "timer.h"
-
 
 /**
  * Loader structure for YAML parsing.
