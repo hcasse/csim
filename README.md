@@ -2,7 +2,7 @@
 
 Small program demonstrating the use of CSim with ARMv5T simulator.
 
-## Building
+## Building`
 
 The setup will download, configure and build required dependencies:
 
@@ -31,12 +31,11 @@ $ doxygen
 The documentation is in `html/index.html`.
 
 
-
 ## Using it
 
 To launch the code, a program must be provided to the command, for instance `samples/sample1.elf`. Then type:
 
-	$ ./csim-run samples/sample1.elf
+	$ ./csim-run BOARD PROGRAM
 
 The current simulation simulates the program with two peripherals: a LED and a push button. They are displayed this way:
 
@@ -49,6 +48,15 @@ Where:
 * _HHHHHHHH_ is the adress of the current instruction.
 * _<inst>_ is the disassembled current instruction.
 
+`csim-run` requires to correctly set up variables `LD_LIBRARY_PATH` and `CSIMPATH`.
+An easier way to run it with sample program (see below) is the use of `make`:
+
+```sh
+$ cd lib
+$ make run TEST=test
+```
+With _test_ one the sample program.
+
 
 ## Using the GUI
 
@@ -57,17 +65,25 @@ To run it, move into `python` directory and type:
 
 ```sh
 $ cd python
-$ make run NUM=number
+$ make run TEST=test
 ```
 
-With _number_ one of the number of samples in directory `samples`.
+With _test_ one of the sample in directory `samples` (without extension).
 
 
-## Programs
+## Sample Programs
+
+* `altera` -- Altera DE1 board with button and LED test.
+
+* `break` -- simple program to test breakpoints.
+
+* `deco` -- test program to test decoration description.
 
 * `sample1.elf` (source `sample1.s`) -- Switch on the LED when the button is pushed.
 
 * `sample2.elf` (source `sample2.s`) -- Invert the state of the LEAD each time there is a click (a button push followed by a release).
+
+* `sseg` -- test ofr 7-segment displayer.
 
 
 ## Building (long way)

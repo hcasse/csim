@@ -8,6 +8,8 @@ components
     DIR: 0b01111111
   SSEG:
     type: sseg
+    x: 10
+    y: 10
 connect
   - GPIOA.P0 -- SSEG.UP
   - GPIOA.P1 -- SSEG.UPLEFT

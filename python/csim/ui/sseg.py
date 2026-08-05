@@ -27,8 +27,7 @@ import libcsim
 
 from orchid.svg import Content
 
-class Component(ui.Component):
-	IMAGE = None
+class SSegShape(Content):
 	SEGS = [
 		"up",
 		"upleft",
@@ -38,6 +37,29 @@ class Component(ui.Component):
 		"downright",
 		"down"
 	]
+
+	def  __init__(self, image, x, y, on, off, **args):
+		Content.__init__(self, image.content, **args)
+		self.on = on
+		self.off = off
+		self.scale(.5)
+		self.translate(x, y)
+
+	def paint(self, state):
+		"""Paint the cells to the right colors."""
+		for i in range(7):
+			if ((state >> i) & 1) != 0:
+				color = self.on
+			else:
+				color = self.off
+			self.set_direct_attr(
+				f"{self.get_id()}{self.SEGS[i]}",
+				"style",
+				f"fill:{color}")
+
+
+class Component(ui.Component):
+	IMAGE = None
 
 	def __init__(self, board, inst):
 		ui.Component.__init__(self, board, inst)
@@ -52,28 +74,15 @@ class Component(ui.Component):
 
 	def install(self, canvas):
 		self.canvas = canvas
-		self.content = canvas.content(Component.IMAGE.content)
-		self.content.scale(1)
 		(x, y) = self.get_pos()
-		self.content.translate(x, y)
+		self.shape = SSegShape(self.IMAGE, x, y, self.on, self.off)
+		canvas.record(self.shape)
 
 	def get_size(self):
 		return (self.IMAGE.w * 2, self.IMAGE.h * 2)
 
-	def paint(self):
-		"""Paint the cells to the right colors."""
-		for i in range(7):
-			if ((state >> i) & 1) != 0:
-				color = self.on
-			else:
-				color.self.off
-			self.set_direct_attr(
-				f"{self.content.get_id()}{self.SEGS[i]}",
-				"style",
-				f"fill:{color}")
-
 	def update(self, ress, state):
-		if state != self.shape.state:
+		if state != self.state:
 			self.state = state
-			if self.parent.online():
-				self.paint()
+			#if self.parent.online():
+			self.shape.paint(state)
