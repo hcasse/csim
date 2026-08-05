@@ -20,23 +20,27 @@
  */
 
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/time.h>
 #include <termio.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "csim.h"
-
 #include "button.h"
 #include "led.h"
-
 #include "arm_core.h"
 
-#include "button.h"
-#include "led.h"
+/** Pass to true if quantum time is overflown. */
+int overflow = 0;
+
+/** Defines the number of quanta per second. */
+#define QUANTUM	10
 
 /****** Board ******/
 
@@ -69,7 +73,6 @@ void init_console() {
 }
 
 // csim_inst_t *led, *button;
-// arm_sim_t *sim;
 csim_core_inst_t *core;
 
 /**
@@ -95,6 +98,7 @@ void print_state(csim_board_t *board, int clear) {
     }
 
     // generate the instruction
+    p += sprintf(p, "%09lu%c/", board->date, overflow ? '!' : ' ');
     csim_addr_t pc = csim_core_pc(core);
     p += sprintf(p, "%08x ", pc);
     csim_core_disasm(core, pc, p);
@@ -111,6 +115,7 @@ void print_state(csim_board_t *board, int clear) {
     buf_size = size;
 
     fputs(buf, stdout);
+	fflush(stdout);
 }
 
 /**
@@ -120,6 +125,16 @@ void print_help() {
     fprintf(stderr, "SYNTAX: csim-run BOARD.yaml EXEC.elf\n");
     fprintf(stderr, "\t-h, -help: displays help message.\n");
     fprintf(stderr, "\t-v: verbose mode.\n");
+}
+
+/**
+ * Get the current time.
+ * @return	Time in ms.
+ */
+uint64_t now() {
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	return (uint64_t)time.tv_sec * 1000 + time.tv_usec / 1000;
 }
 
 /**
@@ -167,37 +182,6 @@ int main(int argc, const char *argv[]) {
 
     /* build the board */
     csim_board_t *board;
-    //char path[256];
-    /*if(board_path == NULL) {
-        int l = strlen(exec);
-        if(strcmp(".elf", exec + l - 4) == 0) {
-            strncpy(path, exec, l - 4);
-            path[l - 4] = '\0';
-        }
-        else
-            strcpy(path, exec);
-        strcat(path, ".yaml");
-        if(VERBOSE)
-            fprintf(stderr, "looking for board %s.\n", path);
-        if(access(path, R_OK) == 0)
-            board_path = path;
-    }
-    if(board_path == NULL) {
-        if (VERBOSE)
-            fprintf(stderr, "setting default board!\n");
-        board = csim_new_board("default");
-        core = (csim_core_inst_t *)csim_new_component(board, &arm_component.comp, "core", 0);
-        csim_new_component(board, &led_component.comp, "led", 0xA0000000);
-		const char *button_conf[] = {
-			"name", "button",
-			"base", "B0000000",
-			"key", "a",
-			NULL
-		};
-        csim_new_component_ext(board, &button_component.comp, button_conf);
-        board->level = CSIM_ERROR;
-    }
-    else {*/
 	csim_level_t level = CSIM_INFO;
 	if (VERBOSE) {
 		fprintf(stderr, "loading board from %s\n", board_path);
@@ -214,7 +198,6 @@ int main(int argc, const char *argv[]) {
 	}
 	else
 		core = board->cores;
-    //}
 
     // load the executable
     int rc = csim_core_load(core, exec);
@@ -223,31 +206,44 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
 
-    // initialize input
-    fd_set set;
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
+    // prepare data
+	int inst_per_quantum = board->clock / QUANTUM;
+	int ms_per_quantum = 1000 / QUANTUM;
     init_console();
 
+	// prepare IO
+	struct pollfd pfd = {
+		.fd = STDIN_FILENO,
+		.events = POLLIN
+	};
+
     // perform I/O
-    print_state(board, 0);
-    while (1) {
+	printf("DEBUG: clock=%ld, i/q=%d, ms/q=%d\n", board->clock, inst_per_quantum, ms_per_quantum);
+	print_state(board, 0);
+	while (1) {
+		uint64_t start_time = now();
 
-        // update display
-        print_state(board, 1);
+		// perform one quantum
+		csim_run(board, inst_per_quantum);
+		print_state(board, 1);
 
-        // get the key
-        FD_ZERO(&set);
-        FD_SET(0, &set);
-        int n = select(1, &set, NULL, NULL, &tv);
-        if (n != 0) {
-            char key;
-            read(0, &key, 1);
-            for (csim_iocomp_inst_t *i = board->iocomps; i != NULL; i = i->next)
-                ((csim_iocomp_t *)i->inst.comp)->on_key(key, i);
-        }
-        csim_run(board, 1);
-    }
-    return 0;
+		// wait until the end of quantum
+		int64_t delay = ms_per_quantum - (now() - start_time);
+		do {
+			overflow = delay < 0;
+			uint64_t timeout = delay > 0 ? delay : 0;
+			//printf("DEBUG: timeout=%ld\n", timeout);
+			int res = poll(&pfd, 1, timeout);
+			if (res > 0)  {
+				char key;
+				read(0, &key, 1);
+				for (csim_iocomp_inst_t *i = board->iocomps; i != NULL; i = i->next)
+					((csim_iocomp_t *)i->inst.comp)->on_key(key, i);
+			}
+			delay = ms_per_quantum - (now() - start_time);
+			//printf("DEBUG: delay=%ld\n", delay);
+		} while(delay > 0);
+	}
+
+	return 0;
 }
