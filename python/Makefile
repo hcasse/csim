@@ -31,7 +31,10 @@ clean:
 	-rm -rf $(MODULE)$(LIBEXT)
 
 export PYTHONPATH=$(PWD):$(PWD)/../../Orchid
-export CSIMPATH=$(PWD)/../altera
+export CSIMPATH=
+ifdef WITH_ALTERA
+CSIMPATH+=:$(PWD)/../altera
+endif
 export LD_LIBRARY_PATH=$(PWD):$(PWD)/../lib
 
 run:

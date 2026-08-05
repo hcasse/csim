@@ -1,0 +1,18 @@
+name: altera
+components
+  CORE
+    type: arm
+  BUTTON
+    type: button
+    x: 20
+    y: 20
+  LED
+    type: led
+    pos: right of BUTTON
+  GPIOA:
+    type: altera/ParPort
+    base: FF000000
+    DIR: 0b00000001
+connect
+  - GPIOA.P0 -- LED.IN
+  - GPIOA.P1 -- BUTTON.OUT

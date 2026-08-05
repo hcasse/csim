@@ -40,21 +40,21 @@ reg ECR[1, word]
 
 port IRQ(1, bit)
 
-port PORT(32, bit)
+port PIN(32, bit)
 	label = "P%d"
-	update_on_input = 1
+	on_input = {
+		if DIR<__INDEX..__INDEX> == INPUT then
+			DAR<__INDEX..__INDEX> = __VALUE;
+			ECR<__INDEX..__INDEX> = ECR<__INDEX..__INDEX> | __VALUE;
+			IRQ = (ECR & ~IMR) != 0;
+		endif;
+	}
 
 op update()
 	action = {
 		for i in 0..31 do
-			if DIR<i..i> == INPUT then
-				DAR<i..i> = PORT[i];
-				if PORT[i] then
-					ECR<i..i> = 1;
-				endif;
-			else
-				PORT[i] = DAR<i..i>;
+			if DIR<i..i> == OUTPUT then
+				PIN[i] = DAR<i..i>;
 			endif;
 		enddo;
-		IRQ = (ECR & IMR) != 0;
 	}

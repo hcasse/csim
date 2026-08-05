@@ -203,12 +203,14 @@ $(end)
 $(foreach ports)
 /* $(name) port functions */
 
-static void on_input_$(name)(csim_port_inst_t *port, csim_value_type_t type, csim_value_t val) {
-	$(comp)_inst_t *__inst = ($(comp)_inst_t *)port->inst;
-	$(if multiple)int num = port - port->inst->ports - $(name)_BASE;$(end)
+static void on_input_$(name)(csim_port_inst_t *port, csim_value_type_t type, csim_value_t value) {
+	int val = value.digital;
+	csim_inst_t *inst = port->inst;
+	$(comp)_inst_t *__inst = ($(comp)_inst_t *)inst;
+	$(if multiple)	int ____INDEX = port - port->inst->ports - $(name)_BASE;$(end)
 
-	if(val.digital != _$(name)$(if multiple)[num]$(end)) {
-		_$(name)$(if multiple)[num]$(end) = val.digital;
+	if(val != _$(name)$(if multiple)[____INDEX]$(end)) {
+		_$(name)$(if multiple)[____INDEX]$(end) = val;
 		$(on_input)
 $(if update_on_input)
 		csim_wakeup(port->inst);

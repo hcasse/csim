@@ -112,16 +112,17 @@ static int sseg_display(char *buf, csim_iocomp_inst_t *inst) {
 	sseg_inst_t *i = (sseg_inst_t *)inst;
 	char c = '?';
 	switch(i->state) {
-	case SSEG_0: c = '0'; break;
-	case SSEG_1: c = '1'; break;
-	case SSEG_2: c = '2'; break;
-	case SSEG_3: c = '3'; break;
-	case SSEG_4: c = '4'; break;
-	case SSEG_5: c = '5'; break;
-	case SSEG_6: c = '6'; break;
-	case SSEG_7: c = '7'; break;
-	case SSEG_8: c = '8'; break;
-	case SSEG_9: c = '9'; break;
+	case 0b0000000:	c = ' '; break;
+	case SSEG_0: 	c = '0'; break;
+	case SSEG_1: 	c = '1'; break;
+	case SSEG_2: 	c = '2'; break;
+	case SSEG_3: 	c = '3'; break;
+	case SSEG_4: 	c = '4'; break;
+	case SSEG_5: 	c = '5'; break;
+	case SSEG_6: 	c = '6'; break;
+	case SSEG_7: 	c = '7'; break;
+	case SSEG_8: 	c = '8'; break;
+	case SSEG_9: 	c = '9'; break;
 	}
 	return sprintf(buf, "[%c]", c);
 }

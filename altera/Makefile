@@ -12,7 +12,7 @@ OBJECTS = $(NMPS:.nmp=.o) altera.o
 
 all: libaltera.so
 
-libaltera.so: $(OBJECTS) ../libcsim.so
+libaltera.so: $(OBJECTS) ../lib/libcsim.so
 	gcc $(CFLAGS) -shared -o $@ $(OBJECTS) $(LDFLAGS)
 
 clean:
