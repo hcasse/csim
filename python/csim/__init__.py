@@ -21,7 +21,7 @@
 
 from enum import IntEnum
 
-import libcsim
+from csim import lib
 
 def error(msg):
 	print("ERROR:", msg)
@@ -112,9 +112,10 @@ class Register:
 		self.stride = None
 		self.flags = None
 		self.type = None
+		self.driver = None
 
 	def fill(self):
-		(name, offset, size, count, stride, flags, type) = libcsim.register_info(self.reg)
+		(name, offset, size, count, stride, flags, type) = self.driver.register_info(self.reg)
 		self.name = name
 		self.offset = offset
 		self.size = size
@@ -155,15 +156,15 @@ class Register:
 
 	def get_value(self, i):
 		"""Get the value of the register."""
-		return libcsim.get_register_val(self.comp.inst, self.reg, i)
+		return self.driver.get_register_val(self.comp.inst, self.reg, i)
 
 	def set_value(self, i, x):
 		"""Set the value of the register."""
-		return libcsim.set_register_val(self.comp.inst, self.reg, i, x)
+		return self.driver.set_register_val(self.comp.inst, self.reg, i, x)
 
 	def make_name(self, index):
 		"""Build the name of an instance of the register."""
-		return libcsim.register_make_name(self.comp.inst, self.reg, index)
+		return self.driver.register_make_name(self.comp.inst, self.reg, index)
 
 
 class Component:
@@ -172,8 +173,8 @@ class Component:
 	def __init__(self, board, inst):
 		self.board = board
 		self.inst = inst
-		self.comp = libcsim.get_comp(inst)
-		self.info = libcsim.inst_info(inst)
+		self.comp = board.driver.get_comp(inst)
+		self.info = board.driver.inst_info(inst)
 		self.name = self.info[1]
 		self.registers = None
 		self.id = self.info[4]
@@ -187,7 +188,7 @@ class Component:
 	def get_component_name(self):
 		"""Get the name of the component describing this component instance."""
 		if self.comp_name is None:
-			(name, type, vers, rcnt, pcnt, size) = libcsim.component_info(self.comp)
+			(name, type, vers, rcnt, pcnt, size) = self.board.driver.component_info(self.comp)
 			self.comp_name = name
 		return self.comp_name
 
@@ -197,10 +198,10 @@ class Component:
 	def get_registers(self):
 		"""Get registers of the component. List of Register objects."""
 		if not self.registers:
-			(name, type, version, reg_cnt, port_cnt, size) = libcsim.component_info(self.comp)
+			(name, type, version, reg_cnt, port_cnt, size) = self.board.driver.component_info(self.comp)
 			self.registers = []
 			for i in range(reg_cnt):
-				reg = libcsim.get_register(self.comp, i)
+				reg = self.board.driver.get_register(self.comp, i)
 				self.registers.append(Register(self, reg))
 		return self.registers
 
@@ -210,7 +211,7 @@ class Component:
 	def get_confs(self):
 		"""Get the configurations of the component."""
 		if self.confs is None:
-			self.confs = Confs(libcsim.inst_confs(self.inst))
+			self.confs = Confs(self.board.driver.inst_confs(self.inst))
 		return self.confs
 
 
@@ -219,37 +220,37 @@ class Core(Component):
 
 	def __init__(self, board, inst):
 		Component.__init__(self, board, inst)
-		self.core = libcsim.get_core(board.board)
+		self.core = self.board.driver.get_core(board.board)
 		assert self.core
 
 	def load(self, path):
 		"""Load the binary from the path.
 		Raises BoardError if there is an error."""
-		res = libcsim.core_load(self.core, path)
+		res = self.board.driver.core_load(self.core, path)
 		if res != 0:
 			raise BoardError(f'cannot load "{path}"')
 
 	def pc(self):
 		"""Get the current PC."""
-		return libcsim.core_pc(self.core)
+		return self.board.driver.core_pc(self.core)
 
 	def inst_size(self):
 		"""Get the size of the current instruction."""
-		return libcsim.core_inst_size(self.core)
+		return self.board.driver.core_inst_size(self.core)
 
 	def disasm(self, addr):
 		"""Disassemble the given address."""
-		return libcsim.core_disasm(self.core, addr)
+		return self.board.driver.core_disasm(self.core, addr)
 
 	def set_break(self, addr):
 		"""Set a break-point at provided address."""
 		#print(f"DEBUG:Py: set_break {addr:08x}")
-		libcsim.set_break(self.core, addr)
+		self.board.driver.set_break(self.core, addr)
 
 	def clear_break(self, addr):
 		"""Clear a break-point at provided address."""
 		#print(f"DEBUG:Py: clear_break {addr:08x}")
-		libcsim.clear_break(self.core, addr)
+		self.board.driver.clear_break(self.core, addr)
 
 
 class IOComponent(Component):
@@ -272,7 +273,7 @@ class IOComponent(Component):
 
 	def do_input(self, ress, state):
 		"""Perform an input operation on the component."""
-		libcsim.do_input(self.board.board, self.get_id(), ress, state)
+		self.board.driver.do_input(self.board.board, self.get_id(), ress, state)
 
 
 COMPONENTS = {
@@ -283,15 +284,19 @@ COMPONENTS = {
 
 class Board:
 
-	def __init__(self, board_path, bin_path=None):
+	def __init__(self, board_path, bin_path=None, driver=None):
 		self.board_path = board_path
 		self.bin_path = bin_path
 		self.components = []
 		self.io_components = []
 		self.map = {}
+		if driver:
+			self.driver = driver
+		else:
+			self.driver = lib.Driver()
 
 		# load the board
-		self.board = libcsim.load_board(board_path)
+		self.board = self.driver.load_board(board_path)
 		if self.board is None:
 			raise BoardError(f"cannot open board {board_path}")
 
@@ -302,9 +307,9 @@ class Board:
 		self.name = None
 
 		# build the list of components
-		for inst in libcsim.get_insts(self.board):
-			comp = libcsim.get_comp(inst)
-			comp_info = libcsim.component_info(comp)
+		for inst in self.driver.get_insts(self.board):
+			comp = self.driver.get_comp(inst)
+			comp_info = self.driver.component_info(comp)
 			ctype = comp_info[1]
 			py_inst = COMPONENTS[ctype](self,  inst)
 			self.components.append(py_inst)
@@ -326,14 +331,14 @@ class Board:
 	def get_confs(self):
 		"""Get the configuration of the board."""
 		if self.confs is None:
-			self.confs = Confs(libcsim.board_confs(self.board))
+			self.confs = Confs(self.driver.board_confs(self.board))
 		return self.confs
 
 	def run(self, time = 10):
-		return libcsim.run(self.board, time)
+		return self.driver.run(self.board, time)
 
 	def step(self):
-		libcsim.step(self.board)
+		self.driver.step(self.board)
 
 	def get_core(self):
 		"""Get the execution core."""
@@ -346,7 +351,7 @@ class Board:
 	def get_clock(self):
 		"""Get the clock of the board."""
 		if self.clock is None:
-			self.clock = libcsim.get_clock(self.board)
+			self.clock = self.driver.get_clock(self.board)
 		return self.clock
 
 	def load_bin(self, path):
@@ -365,20 +370,20 @@ class Board:
 				break
 		if found_inst is None:
 			raise BoardError("cannot find instance '%s'!" % both[0])
-		port = libcsim.find_port(found_inst.comp, both[1])
+		port = self.driver.find_port(found_inst.comp, both[1])
 		if port == None:
 			raise BoardError("cannot find port '%s' in '%s'" % (both[1], both[0]))
 		return (found_inst.inst, port)
 
 	def reset(self):
 		"""Reset the state of the simulator."""
-		libcsim.reset_board(self.board)
+		self.driver.reset_board(self.board)
 		if self.bin_path is not None:
 			self.load_bin(self.bin_path)
 
 	def release(self):
 		"""Release resources used by the board."""
-		libcsim.delete_board(self.board)
+		self.driver.delete_board(self.board)
 		self.board = None
 
 	def get_pc(self):
@@ -391,35 +396,37 @@ class Board:
 
 	def get_date(self):
 		"""Get the date of the simulated board."""
-		return libcsim.get_date(self.board)
+		return self.driver.get_date(self.board)
 
 	def byte_at(self, addr):
 		"""Get the byte at provided address."""
-		return libcsim.byte_at(self.board, addr)
+		return self.driver.byte_at(self.board, addr)
 
 	def half_at(self, addr):
 		"""Get the half-word at provided address."""
-		return libcsim.half_at(self.board, addr)
+		return self.driver.half_at(self.board, addr)
 
 	def word_at(self, addr):
 		"""Get the word at provided address."""
-		return libcsim.word_at(self.board, addr)
+		return self.driver.word_at(self.board, addr)
 
 	def set_log_level(self, level):
 		"""Set the log level (one of CSIM_DEBUG, CSIM_INFO, etc)."""
-		libcsim.set_log_level(self.board, level)
+		self.driver.set_log_level(self.board, level)
 
 	def update_input(self):
 		"""Update input components."""
-		states = libcsim.flush_iostates(self.board)
+		states = self.driver.flush_iostates(self.board)
 		for (id, ress, state) in states:
 			self.map[id].update(ress, state)
 
 	def get_name(self):
 		"""Get the name of the board."""
 		if self.name is None:
-			self.name = libcsim.board_name(self.board)
+			self.name = self.driver.board_name(self.board)
 		return self.name
 
 	def __str__(self):
 		return f"Board {self.get_name()}"
+
+

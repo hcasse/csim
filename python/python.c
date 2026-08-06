@@ -116,7 +116,8 @@ core_load(PyObject *self, PyObject *args) {
 	const char *path;
 	if(!PyArg_ParseTuple(args, "Os", &oinst, &path))
 		return NULL;
-	int rc = csim_core_load(TPTR(csim_core_inst_t, oinst), path);
+	csim_core_inst_t *core = TPTR(csim_core_inst_t, oinst);
+	int rc = csim_core_load(core, path);
 	RETURN_INT(rc);
 }
 
