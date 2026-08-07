@@ -11,7 +11,7 @@ typedef enum yaml_next_t {
 typedef struct {
 	yaml_next_t (*on_key)(const char *key, const char *value, void *data);
 	yaml_next_t (*on_item)(const char *value, void *data);
-	void (*on_end)(void *data);
+	int (*on_end)(void *data);
 	void (*on_error)(const char *msg, void *data);
 } yaml_handler_t;
 

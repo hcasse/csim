@@ -569,7 +569,7 @@ void csim_delete_board(csim_board_t *board) {
 		}
 	}
 
-	board->log(board, CSIM_INFO, "deleting board %s", board->name);
+	board->log(board, CSIM_DEBUG, "deleting board %s", board->name);
 	csim_free_confs(board->confs);
 	free(board->insts);
 	free(board);
@@ -758,7 +758,7 @@ csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp,
  */
 void csim_delete_component(csim_inst_t *inst) {
 	csim_board_t *b = inst->board;
-	b->log(b, CSIM_INFO, "deleting %s (%s)", inst->name, inst->comp->name);
+	b->log(b, CSIM_DEBUG, "deleting %s (%s)", inst->name, inst->comp->name);
 	csim_free_confs(inst->confs);
 	inst->comp->destruct(inst);
 	free(inst);

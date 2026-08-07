@@ -154,7 +154,6 @@ static yaml_next_t on_key(const char *key, const char *val, void *data) {
 			if (strcmp(key, "components") == 0) {
 			loader->board = csim_new_board_ext(loader->top_confs);
 			loader->board->level = loader->level;
-            //loader->board->level = CSIM_ERROR;
             loader->state = IN_COMPS;
             return YAML_MAP;
         }
@@ -214,7 +213,7 @@ static yaml_next_t on_item(const char *val, void *data) {
 }
 
 ///
-static void on_end(void *data) {
+static int on_end(void *data) {
     loader_t *loader = (loader_t *)data;
 
     switch (loader->state) {
@@ -227,8 +226,9 @@ static void on_end(void *data) {
         /* find the component */
         csim_component_t *type = csim_find_component(loader->type);
         if (type == NULL) {
-            fprintf(stderr, "ERROR: component type %s does not exist!\n", loader->type);
-            exit(1);
+			loader->board->log(loader->board, CSIM_ERROR,
+				"ERROR: component type %s does not exist!\n", loader->type);
+			return -1;
         }
 
         /* buiild the component */
@@ -262,6 +262,7 @@ static void on_end(void *data) {
     default:
         break;
     }
+    return 0;
 }
 
 

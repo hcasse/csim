@@ -15,7 +15,7 @@ static yaml_next_t yaml_on_item(const char *value, void *data) {
 }
 
 ///
-static void yaml_on_end(void *data) {}
+static int yaml_on_end(void *data) { return 0; }
 
 ///
 static void yaml_on_error(const char *msg, void *data) {
@@ -125,7 +125,9 @@ int yaml_parse(yaml_handler_t *handler, const char *path, void *data) {
 
 			// pop contexts according to space level
 			while(cnt < stack_top*2) {
-				handler->on_end(data);
+				int res = handler->on_end(data);
+				if(res != 0)
+					return -1;
 				stack_top--;
 				state = stack[stack_top];
 			}
@@ -200,10 +202,12 @@ int yaml_parse(yaml_handler_t *handler, const char *path, void *data) {
 	/* terminate */
 	if(feof(in)) {
 		num = 0;
-		handler->on_end(data);
+		int res = handler->on_end(data);
 		while(stack_top > 0) {
+			if(res != 0)
+				return -1;
 			stack_top--;
-			handler->on_end(data);
+			res = handler->on_end(data);
 		}
 	}
 	else
