@@ -37,17 +37,21 @@ CSIMPATH+=:$(PWD)/../altera
 endif
 export LD_LIBRARY_PATH=$(PWD):$(PWD)/../lib
 
-run:
+env:
 	@echo "PYTHONPATH=$$PYTHONPATH"
 	@echo "CSIMPATH=$$CSIMPATH"
 	@echo "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH"
+
+run: env
 	$(PYTHON) run.py ../samples/$(TEST).yaml ../samples/$(TEST).elf
 
-debug:
-	@echo "PYTHONPATH=$$PYTHONPATH"
-	@echo "CSIMPATH=$$CSIMPATH"
-	@echo "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH"
+debug: env
 	$(PYTHON) run.py ../samples/$(TEST).yaml ../samples/$(TEST).elf --debug
 
+show: env
+	$(PYTHON) run.py $(BOARD) $(EXEC) --debug
+
+
+# automatic documentation
 autodoc:
 	gnome-terminal -- pydoc3 -b

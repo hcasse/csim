@@ -28,6 +28,7 @@ import libcsim
 from orchid.svg import Content
 
 class SSegShape(Content):
+	SCALE = .5
 	SEGS = [
 		"up",
 		"upleft",
@@ -42,7 +43,7 @@ class SSegShape(Content):
 		Content.__init__(self, image.content, **args)
 		self.on = on
 		self.off = off
-		self.scale(.5)
+		self.scale(self.SCALE)
 		self.translate(x, y)
 
 	def paint(self, state):
@@ -79,7 +80,10 @@ class Component(ui.Component):
 		canvas.record(self.shape)
 
 	def get_size(self):
-		return (self.IMAGE.w * 2, self.IMAGE.h * 2)
+		return (
+			self.IMAGE.w * SSegShape.SCALE,
+			self.IMAGE.h * SSegShape.SCALE
+		)
 
 	def update(self, ress, state):
 		if state != self.state:

@@ -29,10 +29,18 @@ bit map
 0xFF200020<14..8>	HEX3
 0xFF200020<6..0>	HEX0
 
-0xFF200020<14..8>	HEX5
-0xFF200020<6..0>	HEX4
+0xFF200030<14..8>	HEX5
+0xFF200030<6..0>	HEX4
 
 
 ### Slider Switch
 
 0xFF200040<9..0>
+
+
+### Push buttons
+
+KEY3-0
+	<0xFF200050>
+
+
