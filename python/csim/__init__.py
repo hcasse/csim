@@ -102,9 +102,10 @@ class RType(IntEnum):
 class Register:
 	"""Representation of a register."""
 
-	def __init__(self, comp, reg):
+	def __init__(self, comp, reg, driver):
 		self.comp = comp
 		self.reg = reg
+		self.driver = driver
 		self.name = None
 		self.offset = None
 		self.size = None
@@ -112,7 +113,6 @@ class Register:
 		self.stride = None
 		self.flags = None
 		self.type = None
-		self.driver = None
 
 	def fill(self):
 		(name, offset, size, count, stride, flags, type) = self.driver.register_info(self.reg)
@@ -202,7 +202,7 @@ class Component:
 			self.registers = []
 			for i in range(reg_cnt):
 				reg = self.board.driver.get_register(self.comp, i)
-				self.registers.append(Register(self, reg))
+				self.registers.append(Register(self, reg, self.board.driver))
 		return self.registers
 
 	def __str__(self):

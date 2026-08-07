@@ -74,11 +74,11 @@ class Driver(driver.Driver):
 	def core_disasm(self, core, addr):
 		return self.LIB.core_disasm(core, addr)
 
-	def set_break(self, addr):
-		self.LIB.set_break(addr)
+	def set_break(self, core, addr):
+		self.LIB.set_break(core, addr)
 
-	def clear_break(self, addr):
-		self.LIB.clear_break(addr)
+	def clear_break(self, core, addr):
+		self.LIB.clear_break(core, addr)
 
 	def do_input(self, board, inst, ress, state):
 		"""Perform an input."""

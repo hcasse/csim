@@ -78,11 +78,11 @@ class Driver:
 		"""Disassemble the instruction at the provided address."""
 		return None
 
-	def set_break(self, addr):
+	def set_break(self, core, addr):
 		"""Set the breakpoint at address."""
 		pass
 
-	def clear_break(self, addr):
+	def clear_break(self, core, addr):
 		"""Clear the breakpoint at provided address."""
 		pass
 
