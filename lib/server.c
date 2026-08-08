@@ -30,22 +30,43 @@
 #define OUT	1
 #define BUFFER_SIZE	2048
 #define VERSION	"0.1"
-#define OK		'0'
-#define ERROR	'!'
 
-static csim_board_t *board = NULL;
+#define OK		0
+#define ERROR	1
 
-uint8_t *msg_buf, *msg_top, *msg_ptr;
+#define QUIT		0	/* => */
+#define LOAD_BOARD	1	/* path: string => code board:  u16 */
+
+csim_board_t *boards[16];
+int board_cnt = 0;
+
+uint8_t *msg_buf, *msg_ptr;
 uint32_t msg_size = BUFFER_SIZE;
+uint32_t msg_avail = 0;
+
+csim_level_t log_level = CSIM_DEBUG;
 
 /**
  * Display log information.
  */
-void do_log(const char *fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
+void do_log(csim_level_t level, const char *fmt, ...) {
+	static char *label[] = {
+		"",
+		"DEBUG",
+		"INFO",
+		"WARNING",
+		"ERROR",
+		"FATAL"
+	};
+	if(level >= log_level) {
+		fprintf(stderr, "SERVER: %s: ", label[level]);
+		va_list args;
+		va_start(args, fmt);
+		vfprintf(stderr, fmt, args);
+		va_end(args);
+		fputc('\n', stderr);
+		fflush(stderr);
+	}
 }
 
 /**
@@ -53,7 +74,6 @@ void do_log(const char *fmt, ...) {
  */
 void reset_msg() {
 	msg_ptr = msg_buf;
-	msg_top = msg_ptr + msg_size;
 }
 
 /**
@@ -76,7 +96,18 @@ void extend_msg() {
 	msg_buf = new_buf;
 	msg_size = new_size;
 	msg_ptr = msg_buf + used;
-	msg_top = msg_ptr + msg_size;
+}
+
+/**
+ * Put chunk of data in the buffer.
+ * @param data	Data to put.
+ * @param size	Size of data.
+ */
+void put_chunk(void *data, int size) {
+	while(msg_ptr + size < msg_buf + msg_size)
+		extend_msg();
+	memcpy(msg_ptr, data, size);
+	msg_ptr += size;
 }
 
 /**
@@ -84,7 +115,7 @@ void extend_msg() {
  * @param byte	Added byte.
  */
 void put_byte(uint8_t byte) {
-	*msg_ptr++ = byte;
+	put_chunk(&byte, sizeof(byte));
 }
 
 /**
@@ -92,8 +123,7 @@ void put_byte(uint8_t byte) {
  * @param half	Added half-word.
  */
 void put_half(uint16_t half) {
-	*(uint16_t *)msg_ptr = half;
-	msg_ptr += sizeof(uint16_t);
+	put_chunk(&half, sizeof(half));
 }
 
 /**
@@ -101,8 +131,7 @@ void put_half(uint16_t half) {
  * @param word	Added word.
  */
 void put_word(uint32_t word) {
-	*(uint32_t *)msg_ptr = word;
-	msg_ptr += sizeof(uint32_t);
+	put_chunk(&word, sizeof(word));
 }
 
 /**
@@ -111,25 +140,14 @@ void put_word(uint32_t word) {
  */
 void put_string(const char *str) {
 	uint32_t size = strlen(str) + 1;
-	memcpy(msg_ptr, str, size);
-	msg_ptr += size;
+	put_word(size);
+	put_chunk((void *)str, size);
 }
 
 /**
  * Send the built message.
  */
 void send_msg() {
-	*msg_ptr++ = '\n';
-	/*char buffer[1024];
-	for(int i = 0; i < msg_ptr - msg_buf; i++) {
-		uint8_t c = msg_buf[i];
-		if(c < 32 || c >= 128)
-			sprintf(buffer + 2*i, "%02x", (int)msg_buf[i]);
-		else
-			sprintf(buffer + 2*i, " %c", c);
-	}
-	buffer[(msg_ptr - msg_buf) * 2] = '\0';
-	do_log("INFO: send message: %s.\n", buffer);*/
 	write(OUT, msg_buf, msg_ptr - msg_buf);
 }
 
@@ -137,12 +155,38 @@ void send_msg() {
  * Receive a message.
  */
 void receive_msg() {
-	int size = read(IN, msg_buf, msg_size);
-	if(size == 0) {
-		do_log("INFO: Client stopped. leaving...\n");
+	msg_avail = read(IN, msg_buf, msg_size);
+	if(msg_avail == 0) {
+		do_log(CSIM_INFO, "pipe cut. leaving...");
 		exit(0);
 	}
 	msg_ptr = msg_buf;
+}
+
+/**
+ * Return a block of the provided size from the input.
+ * @param size	Size of chunk.
+ * @return		Address of the chunk.
+ */
+void *get_chunk(int size) {
+
+	/* load rest of message */
+	if(msg_buf + msg_avail < msg_ptr + size) {
+
+		/* require enlargement */
+		if(msg_ptr + size > msg_ptr + msg_size)
+			extend_msg();
+
+		/* read missing value */
+		while(msg_buf + msg_avail < msg_ptr + size)
+			msg_avail += read(IN, msg_buf + msg_avail, msg_size - msg_avail);
+
+	}
+
+	/* return memory */
+	void *res = msg_ptr;
+	msg_ptr += size;
+	return res;
 }
 
 /**
@@ -150,8 +194,7 @@ void receive_msg() {
  * @return	Read byte.
  */
 uint8_t get_byte() {
-	uint8_t byte = *msg_ptr++;
-	return byte;
+	return *(uint8_t *)get_chunk(sizeof(uint8_t));
 }
 
 /**
@@ -159,9 +202,7 @@ uint8_t get_byte() {
  * @return	Read halfword.
  */
 uint16_t get_half() {
-	uint16_t half = *(uint16_t *)msg_ptr;
-	msg_ptr += sizeof(uint16_t);
-	return half;
+	return *(uint16_t *)get_chunk(sizeof(uint16_t));
 }
 
 /**
@@ -169,9 +210,7 @@ uint16_t get_half() {
  * @return	Read word.
  */
 uint32_t get_word() {
-	uint32_t word = *(uint32_t *)msg_ptr;
-	msg_ptr += sizeof(uint32_t);
-	return word;
+	return *(uint32_t *)get_chunk(sizeof(uint32_t));
 }
 
 /**
@@ -179,10 +218,8 @@ uint32_t get_word() {
  * @return	Found string.
  */
 const char *get_string() {
-	const char *str = (const char *)msg_ptr;
-	uint32_t size = strlen(str) + 1;
-	msg_ptr += size;
-	return str;
+	uint32_t size = get_word();
+	return (const char *)get_chunk(size);
 }
 
 /**
@@ -214,14 +251,37 @@ void send_ok() {
  * Server entry point.
  */
 int main() {
-	do_log("starting csim-server\n");
+	do_log(CSIM_INFO, "starting csim-server");
 	init_msg();
 	while(1) {
 		receive_msg();
 		uint8_t cmd = get_byte();
-		//do_log("INFO: got command '%c'\n", cmd);
+		do_log(CSIM_DEBUG, "got command %d", cmd);
 		switch(cmd) {
 
+		case QUIT:
+			do_log(CSIM_INFO, "quitting!");
+			exit(0);
+			break;
+
+		case LOAD_BOARD: {
+				const char *path = get_string();
+				do_log(CSIM_DEBUG, "path=%s", path);
+				boards[board_cnt] = csim_load_board(path);
+				if(!boards[board_cnt])
+					send_error("cannot load");
+				else {
+					do_log(CSIM_DEBUG, "new board %d", board_cnt);
+					reset_msg();
+					put_byte(OK);
+					put_half(board_cnt);
+					send_msg();
+					board_cnt++;
+				}
+			}
+			break;
+
+#if 0
 		// load path:STR => null
 		case 'L':
 			if(board != NULL)
@@ -352,9 +412,11 @@ int main() {
 			put_string("csim-server V" VERSION);
 			send_msg();
 			break;
+#	endif
 
 		default:
-			do_log("unknown command: '%c'\n", cmd);
+			do_log(CSIM_ERROR, "unknown command: %d\n", cmd);
+			send_error("unknown command");
 		}
 	}
 	return 0;

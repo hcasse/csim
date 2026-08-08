@@ -51,6 +51,9 @@ debug: env
 show: env
 	$(PYTHON) run.py $(BOARD) $(EXEC) --debug
 
+test-server: env
+	$(PYTHON) test-server.py
+
 
 # automatic documentation
 autodoc:
