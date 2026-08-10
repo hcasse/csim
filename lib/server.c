@@ -34,15 +34,36 @@
 #define OK		0
 #define ERROR	1
 
-#define QUIT		0	/* => */
-#define LOAD_BOARD	1	/* path: string => code board:  u16 */
+#define QUIT			0	/* => */
+#define LOAD_BOARD		1	/* path: string => code: byte, board: word */
+#define GET_INSTS		2	/* board: word => code: byte, cnt: half (inst: word)^cnt */
+#define BOARD_NAME		3	/* board: word => code: byte, name: string */
+#define GET_CLOCK		4	/* board: word => code: byte, clock: word */
+#define SET_LOG_LEVEL	5	/* board: word, code: byte, level: byte => */
+#define GET_COMP		6	/* inst: word => code: byte, comp: long */
+#define COMPONENT_INFO	7	/* comp: long => code: byte, name: string, type: byte, version: word, register count: half, port count: half, instance size: half. */
+#define INST_INFO		8	/* inst: word => code: byte, base: word, name: string, number: half, flags: word, id: half */
+
+#define BOARD_SHIFT		24
+#define INST_SHIFT		8
+#define PORT_SHIFT		0
+#define REG_SHIFT		0
+#define MAKE_BOARD(board)				((board) << BOARD_SHIFT)
+#define MAKE_INST(board, inst)			(MAKE_BOARD(board)|((inst) << INST_SHIFT))
+#define MAKE_PORT(board, inst, port)	(MAKE_INST(board, inst)|((port) << PORT_SHIFT))
+#define MAKE_REG(board, inst, reg)		(MAKE_INST(board, inst)|((reg) << PORT_SHIFT))
+#define BOARD(id)						(((id) >> BOARD_SHIFT) & 0xff)
+#define INST(id)						(((id) >> INST_SHIFT) & 0xffff)
+#define PORT(id)						(((id) >> PORT_SHIFT) & 0xff)
+#define REG(id)							(((id) >> REG_SHIFT) & 0xff)
+
 
 csim_board_t *boards[16];
 int board_cnt = 0;
 
-uint8_t *msg_buf, *msg_ptr;
 uint32_t msg_size = BUFFER_SIZE;
 uint32_t msg_avail = 0;
+uint8_t *msg_buf, *msg_ptr;
 
 csim_level_t log_level = CSIM_DEBUG;
 
@@ -88,13 +109,9 @@ void init_msg() {
  * Extend the size of the buffer.
  */
 void extend_msg() {
-	uint32_t new_size = msg_size * 2;
-	uint8_t *new_buf = malloc(new_size);
+	msg_size *= 2;
 	uint32_t used = msg_ptr - msg_buf;
-	memcpy(new_buf, msg_buf, used);
-	free(msg_buf);
-	msg_buf = new_buf;
-	msg_size = new_size;
+	msg_buf = realloc(msg_buf, msg_size);
 	msg_ptr = msg_buf + used;
 }
 
@@ -104,7 +121,7 @@ void extend_msg() {
  * @param size	Size of data.
  */
 void put_chunk(void *data, int size) {
-	while(msg_ptr + size < msg_buf + msg_size)
+	while(msg_ptr + size > msg_buf + msg_size)
 		extend_msg();
 	memcpy(msg_ptr, data, size);
 	msg_ptr += size;
@@ -132,6 +149,14 @@ void put_half(uint16_t half) {
  */
 void put_word(uint32_t word) {
 	put_chunk(&word, sizeof(word));
+}
+
+/**
+ * Add a long to the message.
+ * @param long_	Added long.
+ */
+void put_long(uint64_t long_) {
+	put_chunk(&long_, sizeof(long_));
 }
 
 /**
@@ -214,6 +239,14 @@ uint32_t get_word() {
 }
 
 /**
+ * Get next long from the message.
+ * @return	Read long.
+ */
+uint64_t get_long() {
+	return *(uint64_t *)get_chunk(sizeof(uint64_t));
+}
+
+/**
  * Get the string from the message.
  * @return	Found string.
  */
@@ -271,148 +304,107 @@ int main() {
 				if(!boards[board_cnt])
 					send_error("cannot load");
 				else {
-					do_log(CSIM_DEBUG, "new board %d", board_cnt);
 					reset_msg();
 					put_byte(OK);
-					put_half(board_cnt);
+					put_word(MAKE_BOARD(board_cnt));
 					send_msg();
 					board_cnt++;
 				}
 			}
 			break;
 
-#if 0
-		// load path:STR => null
-		case 'L':
-			if(board != NULL)
-				send_error("Board already loaded!");
-			else {
-				const char *path = get_string();
-				board = csim_load_board(path);
-				if(board == NULL)
-					send_error("Cannot open \"%s\".", path);
-				else {
-					assert(board->cores);
-					send_ok();
-				}
-			}
-			break;
-
-		// reset board =>
-		case '0':
-			assert(board != NULL);
-			csim_reset_board(board);
-			send_ok();
-			break;
-
-		// count component => HALF
-		case '#':
-			assert(board != NULL);
-			reset_msg();
-			put_byte(OK);
-			put_half(board->inst_cnt);
-			send_msg();
-			break;
-
-		// core index => HALF
-		case 'C':
-			reset_msg();
-			put_byte(OK);
-			put_half(board->cores->inst.id);
-			send_msg();
-			break;
-
-		// get IO components => count: HALF (index: HALF)*
-		case 'I': {
+		case GET_INSTS: {
+				int index = BOARD(get_word());
+				assert(index < board_cnt);
+				csim_board_t *board = boards[index];
 				reset_msg();
 				put_byte(OK);
-				int c = 0;
+				put_half(board->inst_cnt);
 				for(int i = 0; i < board->inst_cnt; i++)
-					if(board->insts[i]->comp->type == CSIM_IO)
-						c++;
-				put_half(c);
-				for(int i = 0; i < board->inst_cnt; i++)
-					if(board->insts[i]->comp->type == CSIM_IO)
-						put_half(i);
+					put_word(MAKE_INST(index, i));
 				send_msg();
 			}
 			break;
 
-		// get component information id: HALF
-		// => component name: STR, instance name: STR, type: BYTE, version: WORD,
-		// register count: HALF, port count: HALF
-		case 'c': {
-				assert(board != NULL);
-				int i = get_half();
-				assert(0 <= i && i < board->inst_cnt);
-				csim_inst_t *inst = board->insts[i];
+		case BOARD_NAME: {
+				int index = BOARD(get_word());
+				assert(index < board_cnt);
+				csim_board_t *board = boards[index];
 				reset_msg();
 				put_byte(OK);
-				put_string(inst->comp->name);
+				put_string(board->name);
+				send_msg();
+			}
+			break;
+
+		case GET_CLOCK: {
+				int index = BOARD(get_word());
+				assert(index < board_cnt);
+				csim_board_t *board = boards[index];
+				reset_msg();
+				put_byte(OK);
+				put_word(board->clock);
+				send_msg();
+			}
+			break;
+
+		case SET_LOG_LEVEL: {
+				int index = BOARD(get_word());
+				assert(index < board_cnt);
+				csim_board_t *board = boards[index];
+				board->level = get_byte();
+				reset_msg();
+				put_byte(OK);
+				send_msg();
+			}
+			break;
+
+		case GET_COMP: {
+				uint32_t id = get_word();
+				int board_index = BOARD(id);
+				assert(board_index < board_cnt);
+				csim_board_t *board = boards[board_index];
+				int inst_index = INST(id);
+				assert(inst_index < board->inst_cnt);
+				csim_inst_t *inst = board->insts[inst_index];
+				reset_msg();
+				put_byte(OK);
+				put_long((intptr_t)inst->comp);
+				send_msg();
+			}
+			break;
+
+		case COMPONENT_INFO: {
+				csim_component_t *comp = (csim_component_t *)get_long();
+				reset_msg();
+				put_byte(OK);
+				put_string(comp->name);
+				put_byte(comp->type);
+				put_word(comp->version);
+				put_half(comp->reg_cnt);
+				put_half(comp->port_cnt);
+				put_half(comp->size);
+				send_msg();
+			}
+			break;
+
+		case INST_INFO: {
+				uint32_t id = get_word();
+				int board_index = BOARD(id);
+				assert(board_index < board_cnt);
+				csim_board_t *board = boards[board_index];
+				int inst_index = INST(id);
+				assert(inst_index < board->inst_cnt);
+				csim_inst_t *inst = board->insts[inst_index];
+				reset_msg();
+				put_byte(OK);
+				put_word(inst->base);
 				put_string(inst->name);
-				put_byte(inst->comp->type);
-				put_word(inst->comp->version);
-				put_half(inst->comp->reg_cnt);
-				put_half(inst->comp->port_cnt);
+				put_half(inst->number);
+				put_half(inst->id);
 				send_msg();
 			}
 			break;
-
-		// get register information index: HALF
-		// => name: STR, offset: WORD, size: HALF, count: HALF, stride: WORD,
-		// flags: WORD
-		case 'R': {
-				assert(board != NULL);
-				int comp_idx = get_half();
-				assert(0 <= comp_idx && comp_idx < board->inst_cnt);
-				csim_inst_t *inst = board->insts[comp_idx];
-				int reg_idx = get_half();
-				assert(0 <= reg_idx && reg_idx < inst->comp->reg_cnt);
-				csim_reg_t *reg = &inst->comp->regs[reg_idx];
-				reset_msg();
-				put_byte(OK);
-				put_string(reg->name);
-				put_word(reg->offset);
-				put_half(reg->size);
-				put_half(reg->count);
-				put_word(reg->stride);
-				put_word(reg->flags);
-				put_half(reg->type);
-				send_msg();
-			}
-			break;
-
-		// load binary path: STR =>
-		case 'B': {
-				assert(board != NULL);
-				const char *path = get_string();
-				int res = csim_core_load((csim_core_inst_t *)board->cores, path);
-				if(res == 0)
-					send_ok();
-				else
-					send_error("Cannot load \"%s\": error %d", path, res);
-			}
-			break;
-
-		/*case 'i': {
-				assert(board != NULL);
-				uint32_t addr = get_word();
-				unsigned size = csim_core_inst_size();
-			}
-			break;*/
-
-		// quit
-		case 'Q':
-			return 0;
-
-		// get version => version: STR
-		case 'v':
-			reset_msg();
-			put_byte(OK);
-			put_string("csim-server V" VERSION);
-			send_msg();
-			break;
-#	endif
 
 		default:
 			do_log(CSIM_ERROR, "unknown command: %d\n", cmd);

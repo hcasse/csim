@@ -20,12 +20,21 @@
 
 from enum import IntEnum
 import os
+import sys
 import struct
 import subprocess
 
 from csim import driver
 
 SERVER_PATH = "../lib/csim-server"
+
+class Log(IntEnum):
+	NOLOG = 0
+	DEBUG = 1
+	INFO = 2
+	WARN = 3
+	ERROR = 4
+	FATAL = 5
 
 class Answer(IntEnum):
 	OK = 0
@@ -34,6 +43,14 @@ class Answer(IntEnum):
 class Command(IntEnum):
 	QUIT = 0
 	LOAD_BOARD = 1
+	GET_INSTS = 2
+	BOARD_NAME = 3
+	GET_CLOCK = 4
+	SET_LOG_LEVEL = 5
+	GET_COMP = 6
+	COMPONENT_INFO = 7
+	INST_INFO = 8
+
 
 class Driver(driver.Driver):
 	"""Parent class of drivers."""
@@ -48,23 +65,31 @@ class Driver(driver.Driver):
 		)
 		self.input = self.server.stdout
 		self.output = self.server.stdin
+		self.error_msg = None
 
-	def write_byte(self, value):
+	def log(self, msg):
+		sys.stderr.write(msg)
+		sys.stderr.flush()
+
+	def put_byte(self, value):
 		self.output.write(struct.pack("B", value))
 
-	def write_half(self, value):
+	def put_half(self, value):
 		self.output.write(struct.pack("H", value))
 
-	def write_word(self, value):
+	def put_word(self, value):
 		self.output.write(struct.pack("I", value))
 
-	def write_string(self, s):
-		data = s.encode("utf-8")
-		self.write_word(len(data) + 1)
-		self.output.write(data)
-		self.write_byte(0)
+	def put_long(self, value):
+		self.output.write(struct.pack("Q", value))
 
-	def read_chunk(self, size):
+	def put_string(self, s):
+		data = s.encode("utf-8")
+		self.put_word(len(data) + 1)
+		self.output.write(data)
+		self.put_byte(0)
+
+	def get_chunk(self, size):
 		result = bytearray()
 		while len(result) < size:
 			data = self.input.read(size - len(result))
@@ -73,21 +98,28 @@ class Driver(driver.Driver):
 			result.extend(data)
 		return bytes(result)
 
-	def read_byte(self):
-		return struct.unpack("B", self.read_chunk(1))[0]
+	def send(self):
+		self.output.flush()
 
-	def read_half(self):
-		return struct.unpack("H", self.read_chunk(2))[0]
+	def get_byte(self):
+		return struct.unpack("B", self.get_chunk(1))[0]
 
-	def read_word(fd):
-		return struct.unpack("I", self.read_all(4))[0]
+	def get_half(self):
+		return struct.unpack("H", self.get_chunk(2))[0]
 
-	def read_string(fd):
-		length = self.read_u32()
-		return self.read_all(length).decode("utf-8")[:-1]
+	def get_word(self):
+		return struct.unpack("I", self.get_chunk(4))[0]
+
+	def get_long(self):
+		return struct.unpack("Q", self.get_chunk(8))[0]
+
+	def get_string(self):
+		length = self.get_word()
+		return self.get_chunk(length).decode("utf-8")[:-1]
 
 	def release(self):
-		self.write_byte(Command.QUIT.value)
+		self.put_byte(Command.QUIT.value)
+		self.send()
 
 	def register_info(self, reg):
 		"""Get information about register:
@@ -108,15 +140,37 @@ class Driver(driver.Driver):
 
 	def get_comp(self, inst):
 		"""Get the component for an instance."""
-		return None
+		self.put_byte(Command.GET_COMP.value)
+		self.put_word(inst)
+		self.send()
+		self.get_byte()
+		return self.get_long()
 
 	def inst_info(self, inst):
 		"""Get information about an instance."""
-		return None
+		self.put_byte(Command.INST_INFO.value)
+		self.put_word(inst)
+		self.send()
+		self.get_byte()
+		base = self.get_word()
+		name = self.get_string()
+		number = self.get_half()
+		id = self.get_half()
+		return (base, name, number, id)
 
 	def component_info(self, comp):
 		"""Get information about a component."""
-		return None
+		self.put_byte(Command.COMPONENT_INFO.value)
+		self.put_long(comp)
+		self.send()
+		self.get_byte()
+		name = self.get_string()
+		type = self.get_byte()
+		version = self.get_word()
+		reg_cnt = self.get_half()
+		port_cnt = self.get_half()
+		size = self.get_half()
+		return (name, type, version, reg_cnt, port_cnt, size)
 
 	def get_register(self, comp, index):
 		"""Get register by index."""
@@ -159,19 +213,27 @@ class Driver(driver.Driver):
 		pass
 
 	def load_board(self, path):
-		"""Load the board at the path and return it or None if there is an error."""
-		self.write_byte(Command.LOAD_BOARD.value)
-		self.write_string(path)
-		self.output.flush()
-		code = self.read_byte()
+		self.put_byte(Command.LOAD_BOARD.value)
+		self.put_string(path)
+		self.send()
+		code = self.get_byte()
 		if code == Answer.OK.value:
-			return self.read_half()
+			return self.get_word()
 		else:
-			print("Error!")
+			self.error_msg = self.get_string()
+			print(f"Error: {self.error_msg}")
+			return None
 
 	def get_insts(self, board):
-		"""Get the instances of the board."""
-		return None
+		self.put_byte(Command.GET_INSTS.value)
+		self.put_word(board)
+		self.send()
+		self.get_byte()
+		cnt = self.get_half()
+		insts = []
+		for i in range(cnt):
+			insts.append(self.get_word())
+		return insts
 
 	def board_confs(self, board):
 		"""Get configuration of the board."""
@@ -183,7 +245,11 @@ class Driver(driver.Driver):
 
 	def get_clock(self, board):
 		"""Get the clock of the board."""
-		return None
+		self.put_byte(Command.GET_CLOCK.value)
+		self.put_word(board)
+		self.send()
+		self.get_byte()
+		return self.get_word()
 
 	def find_port(self, comp, name):
 		"""Find a port by its name."""
@@ -215,7 +281,11 @@ class Driver(driver.Driver):
 
 	def set_log_level(self, board, level):
 		"""Set log level."""
-		pass
+		self.put_byte(Command.SET_LOG_LEVEL.value)
+		self.put_word(board)
+		self.put_byte(level.value)
+		self.send()
+		self.get_byte()
 
 	def flush_iostates(self, board):
 		"""Get the output stet changes."""
@@ -223,7 +293,11 @@ class Driver(driver.Driver):
 
 	def board_name(self, board):
 		"""Get the name of the board."""
-		return None
+		self.put_byte(Command.BOARD_NAME.value)
+		self.put_word(board)
+		self.send()
+		self.get_byte()
+		return self.get_string()
 
 	def run(self, board, time):
 		"""Execute code during some time."""
