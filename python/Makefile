@@ -20,7 +20,10 @@ export PYTHONPATH=$(WITH_ORCHID):$(PWD)
 
 NUM = 1
 
-all: $(MODULE)$(LIBEXT)
+all: csim/server.py $(MODULE)$(LIBEXT)
+
+csim/server.py: ../lib/server.desc ../lib/gen.py
+	../lib/gen.py -p $< $@
 
 $(MODULE)$(LIBEXT): python.c ../lib/csim.c
 	gcc $(CFLAGS) -shared -o $@ $< $(LDFLAGS)

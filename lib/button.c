@@ -87,7 +87,7 @@ static void button_change(csim_iocomp_inst_t *inst_, csim_ioinfo_t *info) {
 
 csim_iocomp_t button_component = {
 	{
-		NULL,
+		-1,
 		"button",
 		CSIM_IO,
 		1,

@@ -1,0 +1,162 @@
+/*
+ * CSIM Component simulator server
+ * Copyright (c) 2019, IRIT - UPS <casse@irit.fr>
+ *
+ * This file is part of CSIM.
+ *
+ * CSIM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * CSIM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with CSIM; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+// Commucation protocol between Server
+
+error LOAD
+
+c = {
+		$(includes)
+		#include <stdlib.h>
+		#include <assert.h>
+		#include "csim.h"
+
+		#define BOARD_SHIFT		16
+		#define INST_SHIFT		0
+		#define COMP_SHIFT		16
+		#define PORT_SHIFT		0
+		#define REG_SHIFT		0
+		#define MAKE_BOARD(board)		((board) << BOARD_SHIFT)
+		#define MAKE_INST(board, inst)	(MAKE_BOARD(board)|((inst) << INST_SHIFT))
+		#define MAKE_COMP(comp)			((comp) << COMP_SHIFT)
+		#define MAKE_PORT(comp, port)	(MAKE_COMP(comp)|((port) << PORT_SHIFT))
+		#define MAKE_REG(comp, reg)		(MAKE_COMP(comp)|((reg) << REG_SHIFT))
+		#define BOARD(id)				(((id) >> BOARD_SHIFT) & 0xffff)
+		#define INST(id)				(((id) >> INST_SHIFT) & 0xffff)
+		#define COMP(id)				(((id) >> COMP_SHIFT) & 0xffff)
+		#define PORT(id)				(((id) >> PORT_SHIFT) & 0xffff)
+		#define REG(id)					(((id) >> REG_SHIFT) & 0xffff)
+
+		$(defines)
+
+		csim_board_t *boards[16];
+		int board_cnt = 0;
+		csim_level_t log_level = CSIM_DEBUG;
+
+		/**
+		* Display log information.
+		*/
+		void do_log(csim_level_t level, const char *fmt, ...) {
+			static char *label[] = {
+				"",
+				"DEBUG",
+				"INFO",
+				"WARNING",
+				"ERROR",
+				"FATAL"
+			};
+			if(level >= log_level) {
+				fprintf(stderr, "SERVER: %s: ", label[level]);
+				va_list args;
+				va_start(args, fmt);
+				vfprintf(stderr, fmt, args);
+				va_end(args);
+				fputc('\n', stderr);
+				fflush(stderr);
+			}
+		}
+
+		$(declarations)
+
+		/**
+		* Server entry point.
+		*/
+		int main() {
+			do_log(CSIM_INFO, "starting csim-server");
+			$(init)
+			while(1) {
+				$(receive)
+			}
+			return 0;
+		}
+	}
+
+	python = {
+		$(imports)
+		from csim import driver
+
+		SERVER_PATH = "../lib/csim-server"
+
+		class Log(IntEnum):
+			NOLOG = 0
+			DEBUG = 1
+			INFO = 2
+			WARN = 3
+			ERROR = 4
+			FATAL = 5
+
+		$(declarations)
+
+		class Driver(driver.Driver):
+			"""Parent class of drivers."""
+
+			def __init__(self, server_path = None):
+				if server_path is None:
+					server_path = SERVER_PATH
+				$(connect server_path)
+				self.error_msg = None
+
+			def log(self, msg):
+				sys.stderr.write(msg)
+				sys.stderr.flush()
+
+			def release(self):
+				pass
+
+			$(methods)
+	}
+
+
+quit: =>
+	do = {
+		do_log(CSIM_INFO, "quitting!");
+		exit(0);
+	}
+
+
+load_board: path: string => board: word
+	do = {
+		do_log(CSIM_DEBUG, "path=%s", path);
+		boards[board_cnt] = csim_load_board(path);
+		if(!boards[board_cnt])
+			raise(ERROR_LOAD, "cannot load %s", path);
+		else
+			board_cnt++;
+	}
+	board = { MAKE_BOARD(board_cnt-1) }
+
+
+get_insts: board: word => inst: word*
+	do = {
+		int index = BOARD(board);
+		assert(index < board_cnt);
+		csim_board_t *_board = boards[index];
+	}
+	inst_cnt = { _board->inst_cnt }
+	inst = { MAKE_INST(index, i) }
+
+board_name: board: word => name: string
+	do = {
+		int index = BOARD(board);
+		assert(index < board_cnt);
+		csim_board_t *_board = boards[index];
+	}
+	name = { _board->name }

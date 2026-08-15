@@ -21,4 +21,6 @@ clean:
 %.c: %.nmp
 	$(GLISS) $(GLISS_FLAGS) $<
 
+ParPort.o: ../lib/csim.h
+
 .PRECIOUS: $(SOURCES)

@@ -353,7 +353,7 @@ static csim_reg_t arm_regs[] = {
  */
 csim_core_t arm_component = {
 	{
-		NULL,
+		-1,
 		"arm",
 		CSIM_CORE,
 		1,		// version

@@ -326,7 +326,7 @@ $(else)
  * $(comp) description structure.
  */
 csim_component_t  $(arch)_$(comp)_component = {
-	NULL,
+	-1,
     "$(arch)/$(comp)",
     CSIM_SIMPLE,		// type (TODO fix for IO comp)
     0,					// version

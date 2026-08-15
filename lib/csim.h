@@ -156,7 +156,7 @@ struct csim_init_t {
 };
 
 struct csim_component_t {
-	struct csim_component_t *next;
+	int index;
 	const char *name;
 	csim_ctype_t type;
 	uint32_t version;
@@ -275,6 +275,9 @@ struct csim_board_t {
 	void (*log)(csim_board_t *board, csim_level_t level, const char *msg, ...);
 	csim_io_t *ios[CSIM_IO_SIZE];
 };
+
+extern csim_component_t *csim_comps[];
+extern int csim_comp_cnt;
 
 void csim_add_path(const char *path);
 csim_board_t *csim_new_board(const char *name);

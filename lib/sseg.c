@@ -157,7 +157,7 @@ static void sseg_update(csim_inst_t *inst) {
  */
 csim_iocomp_t sseg_component = {
 	{
-		NULL,
+		-1,
 		"sseg",
 		CSIM_IO,
 		1,

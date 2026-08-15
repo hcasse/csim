@@ -38,13 +38,18 @@
 #include "sseg.h"
 
 #define CSIM_DEFAULT_CLOCK	1000
-
+#define CSIM_COMP_MAX		256
 
 /**
  * Defines the available components.
  * @ingroup csim
  */
-static csim_component_t *csim_comps = NULL;
+csim_component_t *csim_comps[CSIM_COMP_MAX];
+
+/**
+ * Count the number of entries used in @ref csim_comps.
+ */
+int csim_comp_cnt = 0;
 
 
 /**
@@ -1076,9 +1081,9 @@ void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state) {
  * @return		Found component or NULL.
  */
 static csim_component_t *csim_lookup_component(const char *name) {
-	for(csim_component_t *comp = csim_comps; comp; comp = comp->next)
-		if(strcmp(name, comp->name) == 0)
-			return comp;
+	for(int i = 0; i < csim_comp_cnt; i++)
+		if(strcmp(name, csim_comps[i]->name) == 0)
+			return csim_comps[i];
 	return NULL;
 }
 
@@ -1167,8 +1172,9 @@ csim_component_t *csim_find_component(const char *name) {
  * @param comp		Component to register.
  */
 void csim_register_component(csim_component_t *comp) {
-	comp->next = csim_comps;
-	csim_comps = comp;
+	assert(csim_comp_cnt < CSIM_COMP_MAX);
+	comp->index = csim_comp_cnt;
+	csim_comps[csim_comp_cnt++] = comp;
 }
 
 

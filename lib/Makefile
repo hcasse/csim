@@ -33,10 +33,10 @@ ALL_OBJECTS=$(LIB_OBJECTS) $(patsubst %,%.o,$(APPS))
 # rules
 all: libcsim.so $(APPS)
 
-clean: plugins-clean
+clean:
 	-rm -rf $(ALL_OBJECTS) test-csim.o test-csim
 
-distclean: clean $(DISTCLEAN)
+distclean: clean
 	-rm -rf libcsim.so $(APPS)
 
 test-csim: test-csim.o libcsim.so
@@ -50,6 +50,9 @@ csim-server: server.o libcsim.so
 
 libcsim.so: $(LIB_OBJECTS)
 	gcc -shared -o $@ $(LIB_OBJECTS)
+
+server.c: server.desc gen.py
+	./gen.py -c $< $@
 
 # source dependencies
 csim.o: csim.h
