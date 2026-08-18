@@ -86,7 +86,7 @@ class Driver:
 		"""Clear the breakpoint at provided address."""
 		pass
 
-	def do_input(self, ress, state):
+	def do_input(self, board, id, ress, state):
 		"""Perform an input."""
 		pass
 

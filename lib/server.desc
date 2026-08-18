@@ -22,6 +22,8 @@
 // Commucation protocol between Server
 
 error LOAD
+error CORE_LOAD
+error UNSUPPORTED
 
 c = {
 		$(includes)
@@ -44,6 +46,29 @@ c = {
 		#define COMP(id)				(((id) >> COMP_SHIFT) & 0xffff)
 		#define PORT(id)				(((id) >> PORT_SHIFT) & 0xffff)
 		#define REG(id)					(((id) >> REG_SHIFT) & 0xffff)
+
+		#define GET_COMP(comp) \
+			int comp_index = COMP(comp); \
+			assert(comp_index < csim_comp_cnt); \
+			csim_component_t *_comp = csim_comps[comp_index];
+		#define GET_REG(reg) \
+			GET_COMP(reg) \
+			int reg_index = REG(reg); \
+			assert(reg_index < _comp->reg_cnt); \
+			csim_reg_t *_reg = &_comp->regs[reg_index];
+		#define GET_BOARD(board) \
+			int board_index = BOARD(board); \
+			assert(board_index < board_cnt); \
+			csim_board_t *_board = boards[board_index];
+		#define GET_INST(inst) \
+			GET_BOARD(inst) \
+			int inst_index = INST(inst); \
+			assert(inst_index < _board->inst_cnt); \
+			csim_inst_t *_inst = _board->insts[inst_index];
+		#define GET_CORE(core) \
+			GET_INST(core) \
+			csim_core_inst_t *core_inst = (csim_core_inst_t *)_inst; \
+			csim_core_t *_core = (csim_core_t *)_inst->comp;
 
 		$(defines)
 
@@ -160,3 +185,252 @@ board_name: board: word => name: string
 		csim_board_t *_board = boards[index];
 	}
 	name = { _board->name }
+
+get_clock: board: word => clock: word
+	do = {
+		int index = BOARD(board);
+		assert(index < board_cnt);
+		csim_board_t *_board = boards[index];
+	}
+	clock = { _board->clock }
+
+get_date: board: word => date: long
+	do = {
+		int index = BOARD(board);
+		assert(index < board_cnt);
+		csim_board_t *_board = boards[index];
+	}
+	date = { _board->date }
+
+board_confs: board: word => confs: string*
+	do = {
+		int index = BOARD(board);
+		assert(index < board_cnt);
+		csim_board_t *_board = boards[index];
+		int confs_cnt = 0;
+		while(_board->confs[confs_cnt])
+			confs_cnt++;
+	}
+	confs = { _board->confs[i] }
+
+set_log_level: board: word, level: byte =>
+	do = {
+		int index = BOARD(board);
+		assert(index < board_cnt);
+		csim_board_t *_board = boards[index];
+		_board->level = level;
+	}
+
+get_comp: inst: word => comp: word
+	do = {
+		int board_index = BOARD(inst);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+		int inst_index = INST(inst);
+		assert(inst_index < _board->inst_cnt);
+		csim_inst_t *_inst = _board->insts[inst_index];
+	}
+	comp = { MAKE_COMP(_inst->comp->index) }
+
+component_info: comp: word => name: string, type: byte, version: word, reg_cnt: half, port_cnt: half, inst_size: half
+	do = {
+		int comp_index = COMP(comp);
+		assert(comp_index < csim_comp_cnt);
+		csim_component_t *_comp = csim_comps[comp_index];
+	}
+	name = { _comp->name }
+	type = { _comp->type }
+	version = { _comp->version }
+	reg_cnt = { _comp->reg_cnt }
+	port_cnt = { _comp->port_cnt }
+	inst_size = { _comp->size }
+
+inst_info: inst: word => base: word, name: string, number: half, flags: word, id: half
+	do = {
+		int board_index = BOARD(inst);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+		int inst_index = INST(inst);
+		assert(inst_index < _board->inst_cnt);
+		csim_inst_t *_inst = _board->insts[inst_index];
+	}
+	base = { _inst->base }
+	name = { _inst->name }
+	number = { _inst->number }
+	flags = { _inst->flags }
+	id = { _inst->id }
+
+get_core: board: word => core: word
+	do = {
+		int board_index = BOARD(board);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+	}
+	core = { MAKE_INST(board_index, _board->cores->inst.id) }
+
+reset_board: board: word =>
+	do = {
+		int board_index = BOARD(board);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+		csim_reset_board(_board);
+	}
+
+byte_at: board: word, addr: word => data: byte
+	do = {
+		int board_index = BOARD(board);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+	}
+	data = { csim_byte_at(_board, addr) }
+
+half_at: board: word, addr: word => data: half
+	do = {
+		int board_index = BOARD(board);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+	}
+	data = { csim_half_at(_board, addr) }
+
+word_at: board: word, addr: word => data: word
+	do = {
+		int board_index = BOARD(board);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+	}
+	data = { csim_word_at(_board, addr) }
+
+delete_board: board: word =>
+	do = {
+		int board_index = BOARD(board);
+		assert(board_index < board_cnt);
+		csim_board_t *_board = boards[board_index];
+		csim_delete_board(_board);
+		if(board_index == board_cnt - 1)
+			board_cnt--;
+	}
+
+get_register: comp: word, index: half => reg: word
+	do = {
+		int comp_index = COMP(comp);
+		assert(comp_index < csim_comp_cnt);
+	}
+	reg = { MAKE_REG(comp_index, index) }
+
+register_info: reg: word => name: string, offset: half, size: byte, count: half, stride: half, flags: word, type: byte
+	do = { GET_REG(reg) }
+	name = _reg->name
+	offset = { _reg->offset }
+	size = { _reg->size }
+	count = { _reg->count }
+	stride = { _reg->stride }
+	flags = { _reg->flags }
+	type = { _reg->type }
+
+get_register_val: inst: word, reg: word, index: half => data: word
+	do = {
+		GET_REG(reg)
+		GET_INST(inst)
+	}
+	data = { _reg->get(_inst, index) }
+
+set_register_val: inst: word, reg: word, index: half, data: word =>
+	do = {
+		GET_REG(reg)
+		GET_INST(inst)
+		_reg->set(_inst, index, data);
+	}
+
+register_make_name: inst: word, reg:word, index: half => name: string
+	do = {
+		GET_REG(reg)
+		GET_INST(inst)
+		char buf[256];
+		_reg->make_name(_inst, index, buf, sizeof(buf));
+	}
+	name = { buf }
+
+inst_confs: inst: word => confs: string*
+	do = {
+		GET_INST(inst);
+		int confs_cnt = 0;
+		while(_inst->confs[confs_cnt])
+			confs_cnt++;
+	}
+	confs = { _inst->confs[i] }
+
+core_load: core: word, path: string =>
+	do = {
+		GET_CORE(core)
+		if(_core->load(core_inst, path) != 0)
+			raise(ERROR_CORE_LOAD, "cannot load %s", path);
+	}
+
+core_pc: core: word => addr: word
+	do = { GET_CORE(core) }
+	addr = { _core->pc(core_inst) }
+
+inst_size: core: word => size: half
+	do = { GET_CORE(core) }
+	size = { _core->inst_size(core_inst) }
+
+core_disasm: core: word, addr: word => text: string
+	do = {
+		GET_CORE(core)
+		char buf[256];
+		_core->disasm(core_inst, addr, buf);
+	}
+	text = { buf }
+
+set_break: core: word, addr: word =>
+	do = {
+		GET_CORE(core)
+		_core->set_break(core_inst, addr);
+	}
+
+clear_break: core: word, addr: word =>
+	do = {
+		GET_CORE(core)
+		_core->clear_break(core_inst, addr);
+	}
+
+do_input: board: word, id: half, ress: word, state: word =>
+	do = {
+		GET_BOARD(board)
+		csim_ioinfo_t info = { id, ress, state };
+		csim_do_input(_board, &info);
+	}
+
+step: board: word =>
+	do = {
+		GET_BOARD(board);
+		csim_step(_board);
+	}
+
+find_port: comp: word, name: string => port: word
+	do = {
+		raise(ERROR_UNSUPPORTED, "find_port unsupported", comp, name);
+	}
+	port = { 0 }
+
+flush_iostates: board: word => states: word*
+	do = {
+		GET_BOARD(board);
+		int states_cnt = 0;
+		for(csim_iostate_t *info = _board->iostates_head; info; info = info->next)
+			states_cnt += 3;
+		uint32_t states[states_cnt];
+		int i = 0;
+		for(csim_iostate_t *info = _board->iostates_head; info; info = info->next) {
+			states[i++] = info->info.id;
+			states[i++] = info->info.ress;
+			states[i++] = info->info.state;
+		}
+	}
+
+run: board: word, time: word => result: byte
+	do = {
+		GET_BOARD(board);
+		int result = csim_run(_board, time);
+	}
+

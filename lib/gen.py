@@ -52,7 +52,7 @@ def say(msg):
 		sys.stderr.write(f"{msg}\n")
 
 def fatal(msg):
-	sys.std.write(f"ERROR: {msg}")
+	sys.stderr.write(f"ERROR: {msg}\n")
 	exit(1)
 
 class Error:
@@ -202,7 +202,7 @@ with open(args.description) as input:
 					line = line.strip()
 					match = SINGLE_RE.match(line)
 					if not match and line != "":
-						fatal(f"{args.description}{line_num}: syntac error")
+						fatal(f"{args.description}:{line_num}: syntax error")
 
 			# in comment mode
 			elif mode == MODE_IN_COMMENT:

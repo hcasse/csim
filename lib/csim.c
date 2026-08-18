@@ -1172,9 +1172,28 @@ csim_component_t *csim_find_component(const char *name) {
  * @param comp		Component to register.
  */
 void csim_register_component(csim_component_t *comp) {
+
+	/* record component */
 	assert(csim_comp_cnt < CSIM_COMP_MAX);
 	comp->index = csim_comp_cnt;
 	csim_comps[csim_comp_cnt++] = comp;
+
+	/* set missing functions */
+	for(int i = 0; i < comp->reg_cnt; i++) {
+		csim_reg_t *reg = &comp->regs[i];
+		if(!reg->make_name)
+			reg->make_name = csim_default_make_name;
+		if(!reg->display)
+			reg->display = csim_default_display;
+		if(!reg->read)
+			reg->read = csim_default_read;
+		if(!reg->write)
+			reg->write = csim_default_write;
+		if(!reg->get)
+			reg->get = csim_default_get;
+		if(!reg->set)
+			reg->set = csim_defaul_set;
+	}
 }
 
 
@@ -1329,3 +1348,59 @@ void csim_default_change(csim_iocomp_inst_t *inst, csim_ioinfo_t *info) {
 	inst->inst.board->log(inst->inst.board, CSIM_ERROR, "%d:%s: unsupported change call with %d:%d",
 		inst->inst.id, inst->inst.name, info->ress, info->state);
 }
+
+/**
+ * Default register make name function. This implementation returns empty string.
+ * @param inst		Current instance.
+ * @param num		Number in the register array (0 for lonely registers).
+ * @param buf		Buffer to store name in.
+ * @param size		Size of buffer.
+ */
+void csim_default_make_name(csim_inst_t *inst, int num, char *buf, int size) {
+	*buf = '\0';
+}
+
+/**
+ * Default register display function. This implementation display a '?'.
+ * @param inst		Current instance.
+ * @param num		Number in the register array (0 for lonely registers).
+ * @param buf		Buffer to display value in.
+ * @param size		Size of buffer.
+ */
+void csim_default_display(csim_inst_t *inst, int num, char *buf, int size) {
+	strcpy(buf, "?");
+}
+
+/**
+ * Default memory read function. This implementation returns 0.
+ * @param inst		Current instance.
+ * @param num		Number in the register array (0 for lonely registers).
+ */
+csim_word_t csim_default_read(csim_inst_t *inst, int num) {
+	return 0;
+}
+
+/**
+ * Default memory write function. This implementation does nothing.
+ * @param inst		Current instance.
+ * @param num		Number in the register array (0 for lonely registers).
+ * @param val		Written valye.
+ */
+void csim_default_write(csim_inst_t *inst, int num, csim_word_t val) { }
+
+/**
+ * Default value getting function. This implementation returns 0.
+ * @param inst		Current instance.
+ * @param num		Number in the register array (0 for lonely registers).
+ */
+csim_word_t csim_default_get(csim_inst_t *inst, int num) {
+	return 0;
+}
+
+/**
+ * Default value getting function. This implementation returns 0.
+ * @param inst		Current instance.
+ * @param num		Number in the register array (0 for lonely registers).
+ * @param val		Written valye.
+ */
+void csim_defaul_set(csim_inst_t *inst, int num, csim_word_t val) { }

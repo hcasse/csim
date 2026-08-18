@@ -279,59 +279,75 @@ struct csim_board_t {
 extern csim_component_t *csim_comps[];
 extern int csim_comp_cnt;
 
+/* board functions */
 void csim_add_path(const char *path);
 csim_board_t *csim_new_board(const char *name);
 csim_board_t *csim_new_board_ext(csim_confs_t conf);
+void csim_reset_board(csim_board_t *board);
 void csim_delete_board(csim_board_t *board);
 csim_board_t *csim_load_board(const char *path);
 csim_board_t *csim_load_board_ext(const char *path, csim_level_t level);
-void csim_reset_board(csim_board_t *board);
 
-csim_component_t *csim_find_component(const char *name);
-void csim_register_component(csim_component_t *comp);
-
+/* component functions */
 csim_inst_t *csim_new_component(csim_board_t *board, csim_component_t *comp, const char *name, csim_addr_t base);
 csim_inst_t *csim_new_component_ext(csim_board_t *board, csim_component_t *comp, csim_confs_t confs);
 void csim_delete_component(csim_inst_t *inst);
 csim_inst_t *csim_find_instance(csim_board_t *board, const char *name);
-csim_port_t*csim_find_port(csim_component_t *comp, const char *name);
+csim_component_t *csim_find_component(const char *name);
+void csim_register_component(csim_component_t *comp);
 
-void csim_default_update(csim_inst_t *inst);
-void csim_default_change(csim_iocomp_inst_t *inst, csim_ioinfo_t *state);
-
-void csim_log(csim_board_t *board, csim_level_t level, const char *msg, ...);
-
+/* port functions */
 void csim_connect(csim_inst_t *inst1, csim_port_t *port1, csim_inst_t *inst2, csim_port_t *port);
 void csim_disconnect(csim_inst_t *inst1, csim_port_t *port1, csim_inst_t *inst2, csim_port_t *port);
 void csim_mute(csim_inst_t *inst, csim_port_t *port);
 void csim_send_digital(csim_inst_t *inst, csim_port_t *port, int digit);
+csim_port_t*csim_find_port(csim_component_t *comp, const char *name);
 
+/* event functions */
 void csim_record_event(csim_board_t *board, csim_evt_t *evt);
 void csim_cancel_event(csim_board_t *board, csim_evt_t *evt);
 
+/* execution functions */
 int csim_run(csim_board_t *board, csim_time_t time);
 void csim_step(csim_board_t *board);
 
-void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state);
-
+/* wakeup functions */
 void csim_wakeup(csim_inst_t *inst);
 void csim_port_wakeup(csim_port_inst_t *inst, csim_value_type_t type, csim_value_t val);
 void csim_write_wakeup(csim_inst_t *inst, int num, csim_word_t val);
 
+/* memory access */
 uint8_t csim_byte_at(csim_board_t *board, csim_addr_t addr);
 uint16_t csim_half_at(csim_board_t *board, csim_addr_t addr);
 uint32_t csim_word_at(csim_board_t *board, csim_addr_t addr);
 uint64_t csim_long_at(csim_board_t *board, csim_addr_t addr);
 
+/* IO functions */
+void csim_record_iostate(csim_inst_t *inst, csim_iostate_t *state);
+void csim_flush_iostates(csim_board_t *board, csim_ioinfo_t infos[]);
+void csim_do_input(csim_board_t *board, csim_ioinfo_t *info);
+/* deprecated */
 csim_word_t csim_read_io(csim_board_t *board, csim_addr_t addr, int size);
 void csim_write_io(csim_board_t *board, csim_addr_t addr, int size, csim_word_t word);
 void csim_on_io(csim_addr_t addr, int size, void *data, int access, void *cdata);
 
-void csim_record_iostate(csim_inst_t *inst, csim_iostate_t *state);
-void csim_flush_iostates(csim_board_t *board, csim_ioinfo_t infos[]);
-void csim_do_input(csim_board_t *board, csim_ioinfo_t *info);
 
+/* parse configurations */
 uint32_t csim_parse_uint(const char *str, int *err);
+
+/* default functions */
+void csim_no_state(csim_iocomp_inst_t *inst, uint32_t *state);
+void csim_default_update(csim_inst_t *inst);
+void csim_default_change(csim_iocomp_inst_t *inst, csim_ioinfo_t *state);
+void csim_log(csim_board_t *board, csim_level_t level, const char *msg, ...);
+
+void csim_default_make_name(csim_inst_t *inst, int num, char *buf, int size);
+void csim_default_display(csim_inst_t *inst, int num, char *buf, int size);
+csim_word_t csim_default_read(csim_inst_t *inst, int num);
+void csim_default_write(csim_inst_t *inst, int num, csim_word_t val);
+csim_word_t csim_default_get(csim_inst_t *inst, int num);
+void csim_defaul_set(csim_inst_t *inst, int num, csim_word_t val);
+
 
 /* core functions */
 #define csim_core(i) ((csim_core_t *)(i)->inst.comp)
