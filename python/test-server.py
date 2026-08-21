@@ -27,6 +27,7 @@ for inst in driver.get_insts(board):
 	inst_info = driver.inst_info(inst)
 	print(f"\nCLIENT: instance {hex(inst)} ({hex(comp)}, {inst_info})")
 	print(f"CLIENT:\tcomponent = {comp_info}")
+	print(f"CLIENT:\t{driver.inst_confs(inst)}")
 
 	if comp_info[3]:
 		print("CLIENT: registers")
@@ -43,6 +44,25 @@ driver.reset_board(board)
 print(f"CLIENT: byte @0 = {hex(driver.byte_at(board, 0))}")
 print(f"CLIENT: half @0 = {hex(driver.half_at(board, 0))}")
 print(f"CLIENT: word @0 = {hex(driver.word_at(board, 0))}")
+
+# running the code
+print(f"CLIENT: load = {driver.core_load(core, '../samples/sample1.elf')}")
+pc = driver.core_pc(core)
+print(f"CLIENT: pc = {hex(pc)}")
+print(f"CLIENT: inst size = {driver.core_inst_size(core)}")
+print(f"CLIENT: disasm = {driver.core_disasm(core, pc)}")
+
+for i in range(10):
+	pc = driver.core_pc(core)
+	print(f"CLIENT: {hex(pc)}:{driver.core_inst_size(core)}: {driver.core_disasm(core, pc)}")
+	driver.step(board)
+
+driver.set_break(board, 0x100)
+driver.clear_break(board, 0x100)
+driver.do_input(board, 2, 1, 1)
+driver.run(board, 10)
+print(f"CLIENT: ios = {driver.flush_iostates(board)}")
+
 
 # clean up
 driver.delete_board(board)

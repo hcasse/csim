@@ -359,18 +359,17 @@ inst_confs: inst: word => confs: string*
 	}
 	confs = { _inst->confs[i] }
 
-core_load: core: word, path: string =>
+core_load: core: word, path: string => code: word
 	do = {
 		GET_CORE(core)
-		if(_core->load(core_inst, path) != 0)
-			raise(ERROR_CORE_LOAD, "cannot load %s", path);
+		int code = _core->load(core_inst, path);
 	}
 
 core_pc: core: word => addr: word
 	do = { GET_CORE(core) }
 	addr = { _core->pc(core_inst) }
 
-inst_size: core: word => size: half
+core_inst_size: core: word => size: half
 	do = { GET_CORE(core) }
 	size = { _core->inst_size(core_inst) }
 
@@ -416,12 +415,13 @@ find_port: comp: word, name: string => port: word
 flush_iostates: board: word => states: word*
 	do = {
 		GET_BOARD(board);
-		int states_cnt = 0;
+		int states_cnt = -3;
 		for(csim_iostate_t *info = _board->iostates_head; info; info = info->next)
 			states_cnt += 3;
 		uint32_t states[states_cnt];
 		int i = 0;
 		for(csim_iostate_t *info = _board->iostates_head; info; info = info->next) {
+			do_log(CSIM_DEBUG, "info = %p", info);
 			states[i++] = info->info.id;
 			states[i++] = info->info.ress;
 			states[i++] = info->info.state;

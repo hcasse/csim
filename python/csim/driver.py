@@ -63,7 +63,8 @@ class Driver:
 		return None
 
 	def core_load(self, core, path):
-		"""Load the binary in the memory."""
+		"""Load the binary in the memory.
+		Returns 0 for success, an error code else."""
 		pass
 
 	def core_pc(self, core):
@@ -143,7 +144,9 @@ class Driver:
 		pass
 
 	def flush_iostates(self, board):
-		"""Get the output stet changes."""
+		"""Get the output stet changes a list of integers which length is a
+		multiple of 3. In each sequence of 3, first is the component identifier,
+		2nd is the resource identifier and 3rd the new value of the resource."""
 		return None
 
 	def board_name(self, board):

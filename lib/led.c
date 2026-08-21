@@ -40,9 +40,11 @@ static csim_iostate_t shine = { NULL, { 0, LED_SHINE, 0 }};
 ///
 static void led_reset(csim_inst_t *inst) {
 	led_inst_t *i = (led_inst_t *)inst;
-	i->state = 0;
-	shine.info.state = 0;
-	csim_record_iostate(inst, &shine);
+	if(i->state != 0) {
+		i->state = 0;
+		shine.info.state = 0;
+		csim_record_iostate(inst, &shine);
+	}
 }
 
 ///
@@ -57,8 +59,10 @@ static void led_destruct(csim_inst_t *i) { }
 ///
 static void led_on_port(csim_port_inst_t *inst, csim_value_type_t type, csim_value_t val) {
 	led_inst_t *i = (led_inst_t *)inst->inst;
-	i->state = val.digital;
-	csim_wakeup(inst->inst);
+	if(val.digital != i->state) {
+		i->state = val.digital;
+		csim_wakeup(inst->inst);
+	}
 }
 
 ///
