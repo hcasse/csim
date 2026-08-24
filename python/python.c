@@ -443,13 +443,11 @@ flush_iostates(PyObject *self, PyObject *args) {
 	int count = board->iostates_count;
 	csim_ioinfo_t infos[count];
 	csim_flush_iostates(board, infos);
-	PyObject *list = PyList_New(count);
+	PyObject *list = PyList_New(count * 3);
 	for(int i = 0; i < count; i++) {
-		PyObject *tuple = PyTuple_New(3);
-		PyTuple_SetItem(tuple, 0, PyLong_FromLong(infos[i].id));
-		PyTuple_SetItem(tuple, 1, PyLong_FromLong(infos[i].ress));
-		PyTuple_SetItem(tuple, 2, PyLong_FromLong(infos[i].state));
-		PyList_SetItem(list, i, tuple);
+		PyList_SetItem(list, i*3, PyLong_FromLong(infos[i].id));
+		PyList_SetItem(list, i*3 + 1, PyLong_FromLong(infos[i].ress));
+		PyList_SetItem(list, 2, PyLong_FromLong(infos[i].state));
 	}
 	return list;
 }
@@ -599,7 +597,7 @@ static PyMethodDef csim_methods[] = {
 	FUN(new_board_ext, "(configuration: string list) Build a board with  configuration."),
 	FUN(new_component_ext, "(board, component, configuration: string list) build a new component instance."),
 	FUN(get_clock, "(board) get the master clock of the board."),
-	FUN(flush_iostates, "(board): list of (number: int, id: int, state: int) Get the IO states for updating."),
+	FUN(flush_iostates, "(board): integer list of 3x size with sequence of [component, ressource, state] providing the IO states for updating."),
 	FUN(inst_id, "(instance) Get the identifier of the instance."),
 	FUN(do_input, "(board, id, ressource, state) Perform an input as a state change."),
 	FUN(set_break, "(core, address) Set a breakpoint."),

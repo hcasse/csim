@@ -41,4 +41,5 @@ Orchid
 __pycache__
 csim-server
 libcsim.so
+lib/server.c
 

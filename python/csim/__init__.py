@@ -416,9 +416,9 @@ class Board:
 
 	def update_input(self):
 		"""Update input components."""
-		states = self.driver.flush_iostates(self.board)
-		for (id, ress, state) in states:
-			self.map[id].update(ress, state)
+		ios = self.driver.flush_iostates(self.board)
+		for i in range(0, len(ios), 3):
+			self.map[ios[i]].update(ios[i+1], ios[i+2])
 
 	def get_name(self):
 		"""Get the name of the board."""
